@@ -1,0 +1,2201 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Galaxy - Stellar Exploration</title>
+<p>A lightweight, unofficial video client.</p>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- GSAP for Advanced Cinematic & Interactive Animations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+  
+  <script>
+
+if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('SW Registration Failed', err));
+        }
+
+
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            neonBlue: '#00f3ff',
+            neonPurple: '#b026ff',
+            neonPink: '#ff007f',
+            neonGreen: '#39ff14',
+            spaceDark: '#020208',
+            spaceLight: '#0d0d21',
+            glassBg: 'rgba(5, 5, 15, 0.75)',
+            glassBorder: 'rgba(0, 243, 255, 0.25)'
+          },
+          animation: {
+            'radar-spin': 'spin 4s linear infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'star-twinkle': 'twinkle 3s ease-in-out infinite',
+            'spin-slow': 'spin 20s linear infinite',
+            'spin-reverse': 'spinReverse 15s linear infinite',
+            'glitch': 'glitch 1s linear infinite'
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-12px)' },
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: 1, boxShadow: '0 0 15px rgba(0, 243, 255, 0.4)' },
+              '50%': { opacity: .7, boxShadow: '0 0 35px rgba(0, 243, 255, 0.85)' },
+            },
+            twinkle: {
+              '0%, 100%': { opacity: 0.2 },
+              '50%': { opacity: 1 },
+            },
+            spinReverse: {
+              from { transform: rotate(360deg); }
+              to { transform: rotate(0deg); }
+            },
+            glitch: {
+              '0%, 100%': { clipPath: 'inset(10% 0 15% 0)' },
+              '50%': { clipPath: 'inset(5% 0 25% 0)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    /* Futuristic Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #020208; }
+    ::-webkit-scrollbar-thumb { background: rgba(0, 243, 255, 0.35); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0, 243, 255, 0.9); }
+
+    body {
+      background-color: #020208;
+      color: #e2e8f0;
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    /* Interactive Infinite Galaxy Grid Canvas */
+    #spaceMapContainer {
+      position: relative;
+      width: 100%;
+      height: calc(100vh - 4rem);
+      overflow: hidden;
+      cursor: grab;
+      background: radial-gradient(circle at center, #070617 0%, #020208 100%);
+    }
+    #spaceMapContainer:active { cursor: grabbing; }
+
+    /* Nebula Dust Dynamic Shader Overlay */
+    .nebula-overlay {
+      position: absolute;
+      inset: 0;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transition: background 1.5s ease-in-out;
+      opacity: 0.35;
+      background: radial-gradient(circle at 50% 50%, rgba(176,38,255,0.2) 0%, transparent 70%);
+    }
+
+    /* Infinite Star Layers */
+    .star-bg {
+      position: absolute;
+      inset: -1000px;
+      pointer-events: none;
+      background-image: 
+        radial-gradient(1px 1px at 15px 40px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 80px 120px, #ffffff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 180px 240px, rgba(0,243,255,0.7), rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 300px 320px, rgba(255,0,127,0.8), rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 400px 400px;
+    }
+
+    /* Glassmorphic Holo-Panels */
+    .glassmorphism {
+      background: rgba(4, 4, 15, 0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 243, 255, 0.2);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+    }
+
+    .light body { background-color: #f3f7fa; color: #050510; }
+    .light #spaceMapContainer { background: radial-gradient(circle at center, #d8e5f0 0%, #f3f7fa 100%); }
+    .light .star-bg { filter: invert(1) opacity(0.2); }
+    .light .glassmorphism {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 243, 255, 0.5);
+      box-shadow: 0 10px 30px rgba(0, 243, 255, 0.15);
+    }
+
+    /* Holographic Scan Animation */
+    @keyframes scan {
+      0% { top: 0%; }
+      50% { top: 100%; }
+      100% { top: 0%; }
+    }
+    .hologram-scanner::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; height: 2px;
+      background: rgba(0, 243, 255, 0.7);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.8);
+      animation: scan 4s linear infinite;
+      z-index: 10;
+    }
+
+    /* Orbit Trails */
+    .orbit-path {
+      position: absolute;
+      border: 1.5px dashed rgba(0, 243, 255, 0.08);
+      border-radius: 50%;
+      pointer-events: none;
+      transform-style: preserve-3d;
+    }
+
+    /* Singularity Black Hole Effect */
+    .black-hole {
+      background: radial-gradient(circle at center, #000 35%, rgba(176,38,255,0.4) 60%, transparent 85%);
+      box-shadow: inset 0 0 50px rgba(0,0,0,1), 0 0 60px rgba(176,38,255,0.8);
+    }
+
+    /* Star Coordinates System Overlay */
+    .coordinates-grid {
+      position: absolute;
+      inset: 0;
+      background-size: 150px 150px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 243, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+      pointer-events: none;
+    }
+
+    /* View Layer States */
+    .view-layer {
+      display: none;
+      opacity: 0;
+    }
+    .view-layer.active {
+      display: block;
+    }
+  </style>
+</head>
+<body class="transition-colors duration-500 selection:bg-neonBlue selection:text-spaceDark font-sans">
+
+  <!-- Deep Space Canvas Layer -->
+  <div class="fixed inset-0 star-bg z-[-10]"></div>
+  <div class="fixed inset-0 nebula-overlay z-[-9]" id="nebulaColorOverlay"></div>
+
+  <!-- ================= HEADER: COMMAND PANEL ================= -->
+  <header class="fixed top-0 left-0 right-0 z-50 glassmorphism flex items-center justify-between px-4 py-3 md:px-6 h-16 border-b border-neonBlue/30 shadow-[0_0_25px_rgba(0,243,255,0.15)]">
+    <!-- Left Section -->
+    <div class="flex items-center space-x-4">
+      <button id="sidebarToggle" class="p-2 hover:bg-neonBlue/20 rounded-full transition duration-200 text-neonBlue">
+        <i data-lucide="menu" class="w-6 h-6"></i>
+      </button>
+      <div class="flex items-center space-x-2 cursor-pointer group" onclick="navigateTo('home')">
+        <div class="relative w-9 h-9 flex items-center justify-center">
+          <div class="absolute inset-0 border-2 border-neonBlue rounded-full animate-pulse-glow"></div>
+          <i data-lucide="compass" class="w-5 h-5 text-neonBlue animate-[spin_10s_linear_infinite]"></i>
+        </div>
+        <span class="font-black text-xl tracking-widest hidden sm:inline-block text-transparent bg-clip-text bg-gradient-to-r from-neonBlue via-neonPurple to-neonPink font-mono">VIDEO_GALAXY</span>
+      </div>
+    </div>
+
+    <!-- Central Interactive Radar Input -->
+    <div class="flex-1 max-w-xl mx-4 relative">
+      <form id="searchForm" class="flex items-center w-full bg-black/60 border border-neonBlue/40 rounded-full overflow-hidden focus-within:border-neonBlue focus-within:shadow-[0_0_20px_rgba(0,243,255,0.4)] transition duration-300">
+        <div class="pl-4">
+          <i data-lucide="radar" class="w-4 h-4 text-neonBlue animate-[spin_5s_linear_infinite]"></i>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Scan universe for coordinates or video signals..." 
+          class="w-full bg-transparent px-3 py-2 text-sm focus:outline-none placeholder-neonBlue/40 text-white light:text-spaceDark font-mono tracking-wide"
+          autocomplete="off"
+        />
+        <button type="submit" class="px-5 bg-neonBlue/10 hover:bg-neonBlue/20 border-l border-neonBlue/40 py-2 transition text-neonBlue">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </button>
+      </form>
+      <!-- Auto Suggestions Dropdown -->
+      <div id="searchSuggestions" class="absolute left-0 right-0 mt-2 glassmorphism rounded-xl overflow-hidden hidden z-50">
+        <div id="suggestionsList" class="p-2 space-y-1"></div>
+      </div>
+    </div>
+
+    <!-- Right HUD Utilities -->
+    <div class="flex items-center space-x-3 text-neonBlue">
+      <!-- Upload Station Launcher (Satellite icon) -->
+      <button onclick="openUploadStation()" class="relative p-2 bg-neonPurple/10 hover:bg-neonPurple/30 border border-neonPurple/40 rounded-full transition duration-300 shadow-[0_0_15px_rgba(176,38,255,0.3)] group" title="Upload Station">
+        <i data-lucide="satellite-dish" class="w-5 h-5 text-neonPurple group-hover:rotate-12 transition-transform"></i>
+        <span class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-neonGreen rounded-full shadow-[0_0_8px_#39ff14]"></span>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button id="themeToggleBtn" class="p-2 hover:bg-neonBlue/20 rounded-full transition duration-200" title="Shift Energy State">
+        <i data-lucide="sun" id="themeSunIcon" class="w-5 h-5 hidden"></i>
+        <i data-lucide="moon" id="themeMoonIcon" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Manual Overrides Help -->
+      <button id="shortcutsBtn" class="p-2 hover:bg-neonBlue/20 rounded-full transition duration-200 hidden md:inline-block" title="System Shortcut Interface">
+        <i data-lucide="terminal" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Achievements HUD Trigger -->
+      <button onclick="toggleAchievementsPanel()" class="p-2 hover:bg-neonPink/20 rounded-full transition duration-200 relative" title="Achievements Status">
+        <i data-lucide="trophy" class="w-5 h-5 text-neonPink"></i>
+      </button>
+
+      <!-- GALA-9 AI Assistant Orb -->
+      <button onclick="toggleAIAssistant()" class="w-9 h-9 rounded-full border border-neonBlue/60 flex items-center justify-center relative bg-gradient-to-tr from-neonBlue/30 to-neonPurple/30 animate-pulse-glow" title="AI Navigator GALA-9">
+        <i data-lucide="cpu" class="w-4 h-4 text-white"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= SIDEBAR: SYSTEM NAVIGATION ================= -->
+  <aside id="sidebar" class="fixed top-16 left-0 bottom-0 w-64 glassmorphism z-40 transition-transform duration-300 transform -translate-x-full md:translate-x-0 hidden md:block overflow-y-auto border-r border-neonBlue/25">
+    <div class="p-4 space-y-6">
+      <!-- Sectors Navigation -->
+      <div class="space-y-2">
+        <button onclick="navigateTo('home')" class="nav-item active w-full flex items-center space-x-4 px-4 py-3 rounded-xl hover:bg-neonBlue/10 transition-all duration-200 text-left border border-transparent">
+          <i data-lucide="orbit" class="w-5 h-5 text-neonBlue icon-indicator"></i>
+          <span class="font-medium text-sm font-mono tracking-wide text-gray-200">Galaxy Explorer</span>
+        </button>
+        <button onclick="navigateToTrending()" class="nav-item w-full flex items-center space-x-4 px-4 py-3 rounded-xl hover:bg-neonPink/10 transition-all duration-200 text-left border border-transparent">
+          <i data-lucide="flame" class="w-5 h-5 text-gray-500 icon-indicator"></i>
+          <span class="font-medium text-sm font-mono tracking-wide text-gray-200">Supernovas (Hot)</span>
+        </button>
+        <button onclick="navigateTo('library')" class="nav-item w-full flex items-center space-x-4 px-4 py-3 rounded-xl hover:bg-neonPurple/10 transition-all duration-200 text-left border border-transparent">
+          <i data-lucide="database" class="w-5 h-5 text-gray-500 icon-indicator"></i>
+          <span class="font-medium text-sm font-mono tracking-wide text-gray-200">Data Archives</span>
+        </button>
+      </div>
+
+      <hr class="border-neonBlue/20">
+
+      <!-- Galaxy Action Station Hub -->
+      <div class="space-y-2">
+        <h3 class="px-4 text-[10px] uppercase tracking-widest text-neonBlue font-bold mb-2 font-mono">Universe Action</h3>
+        <button onclick="openUploadStation()" class="w-full flex items-center space-x-4 px-4 py-3 rounded-xl bg-neonPurple/10 border border-neonPurple/30 text-white text-xs font-mono font-bold hover:bg-neonPurple/30 transition shadow-[0_0_15px_rgba(176,38,255,0.25)]">
+          <i data-lucide="satellite-dish" class="w-4 h-4 text-neonPurple"></i>
+          <span>🛰️ Launch Upload Stn</span>
+        </button>
+        <div class="grid grid-cols-2 gap-2 mt-2 px-1">
+          <button onclick="exportGalaxyBackup()" class="bg-black/40 border border-neonBlue/20 hover:border-neonBlue px-2 py-2 rounded text-[10px] font-mono text-neonBlue transition text-center flex flex-col items-center justify-center space-y-1">
+            <i data-lucide="upload" class="w-3 h-3"></i>
+            <span>Export Sys</span>
+          </button>
+          <label class="bg-black/40 border border-neonBlue/20 hover:border-neonBlue px-2 py-2 rounded text-[10px] font-mono text-neonBlue transition text-center cursor-pointer flex flex-col items-center justify-center space-y-1">
+            <i data-lucide="download" class="w-3 h-3"></i>
+            <span>Import Sys</span>
+            <input type="file" id="galaxyBackupFile" class="hidden" accept=".json" onchange="importGalaxyBackup(event)">
+          </label>
+        </div>
+      </div>
+
+      <hr class="border-neonBlue/20">
+
+      <!-- Memory Bank Lists -->
+      <div class="space-y-1">
+        <h3 class="px-4 text-[10px] uppercase tracking-widest text-neonBlue font-bold mb-2 font-mono">Memory Bank Logs</h3>
+        <button onclick="viewLibrarySection('watchLater')" class="w-full flex items-center space-x-4 px-4 py-2.5 rounded-xl hover:bg-white/5 text-left text-sm text-gray-400 hover:text-neonBlue transition-colors">
+          <i data-lucide="clock" class="w-4 h-4"></i>
+          <span>Hyper Sleep Nodes</span>
+        </button>
+        <button onclick="viewLibrarySection('liked')" class="w-full flex items-center space-x-4 px-4 py-2.5 rounded-xl hover:bg-white/5 text-left text-sm text-gray-400 hover:text-neonBlue transition-colors">
+          <i data-lucide="star" class="w-4 h-4"></i>
+          <span>Favorable Intercepts</span>
+        </button>
+        <button onclick="viewLibrarySection('history')" class="w-full flex items-center space-x-4 px-4 py-2.5 rounded-xl hover:bg-white/5 text-left text-sm text-gray-400 hover:text-neonBlue transition-colors">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span>Mission Flight Logs</span>
+        </button>
+      </div>
+
+      <hr class="border-neonBlue/20">
+
+      <!-- Live Map Controller -->
+      <div class="p-3 bg-black/40 border border-neonBlue/20 rounded-xl space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-mono text-neonBlue uppercase tracking-widest">Navigator Controls</span>
+          <i data-lucide="navigation-2" class="w-3.5 h-3.5 text-neonBlue"></i>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="resetMapView()" class="bg-neonBlue/10 hover:bg-neonBlue/30 border border-neonBlue/30 py-1.5 rounded text-[9px] font-mono font-bold text-neonBlue tracking-wide transition uppercase">Recenter Map</button>
+          <button onclick="zoomMap(1.2)" class="bg-neonBlue/10 hover:bg-neonBlue/30 border border-neonBlue/30 py-1.5 rounded text-[9px] font-mono font-bold text-neonBlue tracking-wide transition uppercase">Zoom In</button>
+          <button onclick="zoomMap(0.8)" class="bg-neonBlue/10 hover:bg-neonBlue/30 border border-neonBlue/30 py-1.5 rounded text-[9px] font-mono font-bold text-neonBlue tracking-wide transition uppercase col-span-2">Zoom Out</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN LAYOUT ================= -->
+  <main id="mainContent" class="md:ml-64 pt-16 min-h-screen pb-20 md:pb-6 relative z-10 transition-all duration-300">
+    <div class="p-4 md:p-6 max-w-7xl mx-auto">
+
+      <!-- ================= 1. HOME VIEW: GALAXY EXPLORER ================= -->
+      <section id="homeView" class="view-layer active space-y-6">
+        <!-- Galaxy Sector Chips navigation -->
+        <div class="flex items-center space-x-3 overflow-x-auto pb-2.5 scrollbar-none sticky top-16 bg-spaceDark/90 backdrop-blur-md z-20 -mx-4 px-4 py-3 border-b border-neonBlue/15">
+          <div class="text-[10px] font-mono text-neonBlue uppercase tracking-widest mr-2 flex-shrink-0 flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 bg-neonBlue rounded-full animate-ping"></span>
+            <span>Jump Sectors:</span>
+          </div>
+          <button onclick="filterVideosByCategory('All')" class="category-chip active px-4 py-1.5 bg-neonBlue/25 border border-neonBlue text-neonBlue text-xs font-mono font-bold rounded-full whitespace-nowrap shadow-[0_0_10px_rgba(0,243,255,0.3)] transition-all">All Sectors</button>
+          <button onclick="filterVideosByCategory('Music')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Music System</button>
+          <button onclick="filterVideosByCategory('Gaming')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Gaming System</button>
+          <button onclick="filterVideosByCategory('Tech')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Tech System</button>
+          <button onclick="filterVideosByCategory('Science')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Science System</button>
+          <button onclick="filterVideosByCategory('Education')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Education System</button>
+          <button onclick="filterVideosByCategory('Nature')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Nature System</button>
+          <button onclick="filterVideosByCategory('Adventure')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Adventure System</button>
+          <button onclick="filterVideosByCategory('Ambient')" class="category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all">Ambient System</button>
+        </div>
+
+        <!-- Galaxy Board Panel -->
+        <div class="relative bg-black/60 rounded-3xl border border-neonBlue/20 overflow-hidden shadow-[0_0_40px_rgba(0,243,255,0.1)]">
+          <div class="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-neonBlue/10 to-transparent flex items-center justify-between px-6 z-20 pointer-events-none">
+            <span class="text-[9px] font-mono text-neonBlue uppercase tracking-widest flex items-center space-x-2">
+              <i data-lucide="globe-2" class="w-3.5 h-3.5 text-neonBlue animate-spin-slow"></i>
+              <span>Active Coordinates Simulator Mode</span>
+            </span>
+            <span id="explorationProgressHUD" class="text-[9px] font-mono text-neonBlue uppercase tracking-widest">Progress: 0% Explored</span>
+          </div>
+
+          <!-- INTERACTIVE INFINITE MAP CANVAS AND CONTAINMENT VIEWPORT -->
+          <div id="spaceMapContainer" class="relative">
+            <!-- Stellar Coordinates Grid backdrop -->
+            <div class="coordinates-grid"></div>
+
+            <!-- Draggable Universe space map viewport -->
+            <div id="galaxyMap" class="absolute w-[4000px] h-[3000px] top-[-1000px] left-[-1500px] origin-center transform-gpu select-none">
+              
+              <!-- Constellations / Connection Lines Layer SVG -->
+              <svg id="constellationSvg" class="absolute inset-0 w-full h-full pointer-events-none" style="filter: drop-shadow(0 0 8px rgba(0,243,255,0.6));"></svg>
+
+              <!-- central singularity (The Black Hole) -->
+              <div id="centralSingularity" onclick="warpIntoSingularity()" class="absolute w-56 h-56 rounded-full black-hole top-[1372px] left-[1872px] cursor-pointer z-20 flex flex-col items-center justify-center text-center animate-float group select-none">
+                <div class="absolute inset-[-10%] rounded-full border border-neonPurple/50 animate-spin-slow"></div>
+                <div class="absolute inset-[-20%] rounded-full border border-neonPink/30 animate-spin-reverse"></div>
+                <h3 class="font-black text-xs tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neonPurple via-neonPink to-white font-mono group-hover:scale-110 transition-transform">THE_VOID</h3>
+                <p class="text-[8px] font-mono text-neonPurple tracking-widest mt-1 uppercase opacity-60 group-hover:opacity-100 transition-opacity">Singularity Trigger</p>
+              </div>
+
+              <!-- Planets Container -->
+              <div id="planetarySystem" class="relative w-full h-full">
+                <!-- Planets dynamically inserted here with unique galactic coordinates -->
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- System Recommendations Overlay (Holographic panel) -->
+        <div class="glassmorphism p-6 rounded-3xl relative overflow-hidden group">
+          <div class="absolute inset-0 bg-gradient-to-r from-neonBlue/5 via-transparent to-transparent"></div>
+          <div class="flex items-center space-x-3 mb-4">
+            <i data-lucide="radio" class="w-5 h-5 text-neonBlue animate-pulse"></i>
+            <h3 class="font-black text-sm tracking-widest uppercase text-neonBlue font-mono">Constellation Network Recommendations</h3>
+          </div>
+          <div id="constellationRecommendationsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <!-- Recommendation Planet elements go here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 2. WATCH VIEW: OBSERVATION DECK ================= -->
+      <section id="watchView" class="view-layer grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Advanced HUD Video Frame border -->
+          <div class="relative w-full aspect-video rounded-3xl bg-black border border-neonBlue shadow-[0_0_35px_rgba(0,243,255,0.25)] overflow-hidden group p-1.5">
+            <div class="absolute inset-0 border border-neonBlue/30 m-3 pointer-events-none z-10 animate-pulse">
+               <div class="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-neonBlue"></div>
+               <div class="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-neonBlue"></div>
+               <div class="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-neonBlue"></div>
+               <div class="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-neonBlue"></div>
+            </div>
+            <div id="youtubePlayerPlaceholder" class="w-full h-full rounded-2xl overflow-hidden"></div>
+          </div>
+
+          <!-- Video Title Metadata Card -->
+          <div class="glassmorphism p-6 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between">
+              <h1 id="watchVideoTitle" class="text-xl md:text-2xl font-black tracking-tight text-white font-mono">Planet Exploration Signal</h1>
+              <div id="userPlanetControls" class="flex items-center space-x-2 hidden">
+                <button onclick="editPlanetForm()" class="px-3 py-1 bg-neonBlue/10 hover:bg-neonBlue/20 border border-neonBlue/50 text-neonBlue rounded font-mono text-[10px] uppercase transition">Edit Planet</button>
+                <button onclick="destroyPlanet()" class="px-3 py-1 bg-neonPink/15 hover:bg-neonPink/30 border border-neonPink/50 text-neonPink rounded font-mono text-[10px] uppercase transition">Destroy</button>
+              </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <!-- Channel / Signal transmission Source -->
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-full border-2 border-neonPurple flex items-center justify-center font-black text-sm text-white shadow-[0_0_15px_rgba(176,38,255,0.5)] bg-spaceDark" id="watchChannelInitials">
+                  C
+                </div>
+                <div>
+                  <h4 id="watchChannelName" class="font-bold text-sm text-neonPurple font-mono">Unknown Base</h4>
+                  <p id="watchSubCount" class="text-xs text-gray-400 font-mono">1.2M Intercepts</p>
+                </div>
+                <button id="subscribeBtn" onclick="toggleSubscribe()" class="ml-4 bg-neonPurple/20 border border-neonPurple text-white text-xs font-mono font-bold px-4 py-2 rounded-full transition hover:bg-neonPurple/40 shadow-[0_0_10px_rgba(176,38,255,0.3)]">
+                  Subscribe Channel
+                </button>
+              </div>
+
+              <!-- Interactions -->
+              <div class="flex items-center space-x-2">
+                <button id="likeBtn" onclick="toggleLikeCurrent()" class="flex items-center space-x-2 bg-spaceDark border border-neonBlue/30 text-white text-xs font-mono font-bold px-4 py-2 rounded-lg transition hover:border-neonBlue hover:shadow-[0_0_15px_rgba(0,243,255,0.3)]">
+                  <i data-lucide="zap" class="w-4 h-4" id="likeIcon"></i>
+                  <span id="likeText">Energize</span>
+                </button>
+                <button id="watchLaterBtn" onclick="toggleWatchLaterCurrent()" class="flex items-center space-x-2 bg-spaceDark border border-neonBlue/30 text-white text-xs font-mono font-bold px-4 py-2 rounded-lg transition hover:border-neonBlue hover:shadow-[0_0_15px_rgba(0,243,255,0.3)]">
+                  <i data-lucide="download" class="w-4 h-4" id="watchLaterIcon"></i>
+                  <span id="watchLaterText">Store Log</span>
+                </button>
+                <button onclick="shareCurrentVideo()" class="flex items-center space-x-2 bg-spaceDark border border-neonBlue/30 text-white text-xs font-mono font-bold px-4 py-2 rounded-lg transition hover:border-neonBlue hover:shadow-[0_0_15px_rgba(0,243,255,0.3)]">
+                  <i data-lucide="radio" class="w-4 h-4"></i>
+                  <span>Broadcast Link</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Decrypted Log Info -->
+            <div class="space-y-2 pt-2">
+              <div class="flex items-center space-x-4 text-xs font-mono text-neonPink">
+                <span>[ <span id="watchViewCount">0</span> scans ]</span>
+                <span>[ T-minus <span id="watchUploadDate">0 hours</span> ]</span>
+              </div>
+              <p id="watchDescription" class="text-sm text-gray-300 font-mono line-clamp-3 leading-relaxed">
+                Decrypting stellar logs...
+              </p>
+              <button onclick="toggleDescriptionCollapse(this)" class="text-xs font-mono font-bold text-neonBlue hover:text-white cursor-pointer mt-2 focus:outline-none">> RENDER EXPANDED DATA</button>
+            </div>
+          </div>
+
+          <!-- Interactive Comms Link Comments System -->
+          <div class="glassmorphism p-6 rounded-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-neonBlue/20 pb-2">
+              <div class="flex items-center space-x-2 text-neonBlue font-mono">
+                <i data-lucide="message-square" class="w-5 h-5 animate-pulse"></i>
+                <h3 class="font-bold text-base uppercase">Comms Link [<span id="commentCount">2</span>]</h3>
+              </div>
+            </div>
+            <div class="flex items-start space-x-4">
+              <div class="w-10 h-10 rounded-full border border-neonPurple overflow-hidden flex-shrink-0">
+                <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Avatar" class="w-full h-full object-cover">
+              </div>
+              <div class="flex-1 space-y-3">
+                <input type="text" id="commentInput" placeholder="Transmit public coordinate transmission to universe..." class="w-full bg-spaceDark border border-neonBlue/30 rounded-lg focus:border-neonBlue focus:shadow-[0_0_10px_rgba(0,243,255,0.3)] focus:outline-none px-4 py-2 text-sm font-mono text-white">
+                <div class="flex justify-end space-x-2">
+                  <button onclick="cancelComment()" class="text-xs font-mono font-bold text-gray-400 hover:text-white px-3 py-1.5">Abort</button>
+                  <button onclick="submitComment()" class="bg-neonBlue/25 border border-neonBlue text-neonBlue hover:bg-neonBlue hover:text-spaceDark text-xs font-mono font-bold px-4 py-1.5 rounded-lg transition shadow-[0_0_10px_rgba(0,243,255,0.2)]">Transmit Comment</button>
+                </div>
+              </div>
+            </div>
+            <div id="commentsContainer" class="space-y-4 pt-4">
+              <!-- Comments load here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Watch Right Sidebar (Adjacent Star Systems / anomalies) -->
+        <div class="glassmorphism p-4 rounded-3xl h-fit border border-neonPink/30 shadow-[0_0_20px_rgba(255,0,127,0.1)] space-y-4">
+          <div class="flex items-center space-x-2 mb-4 border-b border-neonPink/20 pb-2">
+            <i data-lucide="crosshair" class="w-4 h-4 text-neonPink"></i>
+            <h3 class="font-bold text-xs tracking-widest uppercase text-neonPink font-mono">Nearby Stellar Anomalies</h3>
+          </div>
+          <div id="relatedVideosContainer" class="space-y-4">
+            <!-- Sidebar recommendation units dynamically loaded -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 3. SEARCH VIEW: RADAR SCANNER ================= -->
+      <section id="searchView" class="view-layer space-y-8">
+        <div class="flex flex-col items-center justify-center py-6 border-b border-neonBlue/20">
+          <div class="relative w-28 h-28 rounded-full border border-neonBlue/50 bg-neonBlue/5 overflow-hidden shadow-[0_0_35px_rgba(0,243,255,0.25)]">
+             <div class="absolute inset-3 rounded-full border border-neonBlue/20"></div>
+             <div class="absolute inset-7 rounded-full border border-neonBlue/20"></div>
+             <!-- Sweeper line -->
+             <div class="absolute inset-0 bg-conic-gradient from-transparent via-transparent to-neonBlue/70 animate-radar-spin mix-blend-screen"></div>
+             <div class="absolute top-1/2 left-1/2 w-full h-[1px] bg-neonBlue origin-left animate-radar-spin shadow-[0_0_15px_#00f3ff]"></div>
+          </div>
+          <h2 class="text-xl md:text-2xl font-black tracking-widest uppercase font-mono mt-6">Radar Lock Coordinate: "<span id="searchQueryTitle" class="text-neonBlue">...</span>"</h2>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="searchFilterBtn" onclick="toggleSearchFilters()" class="flex items-center space-x-2 bg-neonPurple/10 hover:bg-neonPurple/30 border border-neonPurple/40 px-4 py-2 rounded-lg text-xs font-mono transition shadow-[0_0_10px_rgba(176,38,255,0.2)]">
+            <i data-lucide="sliders" class="w-4 h-4 text-neonPurple"></i>
+            <span>Calibrate Biosensors</span>
+          </button>
+        </div>
+
+        <!-- Sensor Calibration Panel -->
+        <div id="searchFiltersPanel" class="glassmorphism p-6 rounded-xl border border-neonPurple/50 grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
+          <div>
+            <h4 class="text-[10px] uppercase tracking-widest text-neonPurple font-mono mb-2">Temporal Node Origin</h4>
+            <select id="filterUploadDate" class="w-full bg-spaceDark border border-neonPurple/50 rounded-lg p-2 focus:outline-none focus:border-neonPink text-white font-mono text-xs">
+              <option value="all">Any Horizon Cycle</option>
+              <option value="recent">Recent Cycles</option>
+            </select>
+          </div>
+          <div>
+            <h4 class="text-[10px] uppercase tracking-widest text-neonPurple font-mono mb-2">Stellar Signal Length</h4>
+            <select id="filterDuration" class="w-full bg-spaceDark border border-neonPurple/50 rounded-lg p-2 focus:outline-none focus:border-neonPink text-white font-mono text-xs">
+              <option value="all">Unconstrained</option>
+              <option value="short">Short Transmission (&lt; 4m)</option>
+              <option value="long">Deep Horizon Scan (&gt; 20m)</option>
+            </select>
+          </div>
+          <div>
+            <h4 class="text-[10px] uppercase tracking-widest text-neonPurple font-mono mb-2">Prioritize Signature</h4>
+            <select id="filterSort" class="w-full bg-spaceDark border border-neonPurple/50 rounded-lg p-2 focus:outline-none focus:border-neonPink text-white font-mono text-xs">
+              <option value="relevance">Signature Match</option>
+              <option value="views">Highest Scan Frequency</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Search Results List -->
+        <div id="searchResultsList" class="space-y-6">
+          <!-- Holographic wide cards dynamically rendered -->
+        </div>
+      </section>
+
+      <!-- ================= 4. LIBRARY VIEW: DATA ARCHIVES ================= -->
+      <section id="libraryView" class="view-layer space-y-10">
+        <div class="flex items-center justify-between border-b border-neonPurple/30 pb-4">
+          <h2 class="text-3xl font-black tracking-widest uppercase font-mono text-transparent bg-clip-text bg-gradient-to-r from-neonPurple to-neonPink">System Archives</h2>
+          <button onclick="clearAllHistory()" class="flex items-center space-x-2 text-xs font-mono text-gray-400 hover:text-neonPink transition border border-transparent hover:border-neonPink px-3 py-1 rounded">
+            <i data-lucide="trash-2" class="w-4 h-4 text-neonPink"></i>
+            <span>Purge Memory banks</span>
+          </button>
+        </div>
+
+        <!-- Mission Flight Logs -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-neonBlue/10 rounded border border-neonBlue shadow-[0_0_10px_rgba(0,243,255,0.3)]">
+              <i data-lucide="activity" class="w-5 h-5 text-neonBlue"></i>
+            </div>
+            <h3 class="text-lg font-bold font-mono tracking-widest uppercase text-white">Mission Flight Logs</h3>
+          </div>
+          <div id="libraryHistoryGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+        </div>
+
+        <!-- Hyper sleep pods (Saved / Watch Later) -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-yellow-500/10 rounded border border-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]">
+              <i data-lucide="clock" class="w-5 h-5 text-yellow-500"></i>
+            </div>
+            <h3 class="text-lg font-bold font-mono tracking-widest uppercase text-white">Suspended Sleep Pods</h3>
+          </div>
+          <div id="librarySavedGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+        </div>
+
+        <!-- Favorable Intercepts (Liked) -->
+        <div class="space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-neonPink/10 rounded border border-neonPink shadow-[0_0_10px_rgba(255,0,127,0.3)]">
+              <i data-lucide="star" class="w-5 h-5 text-neonPink"></i>
+            </div>
+            <h3 class="text-lg font-bold font-mono tracking-widest uppercase text-white">Favorable Intercept Signals</h3>
+          </div>
+          <div id="libraryLikedGrid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ================= MOBILE NAVIGATION ================= -->
+  <nav class="fixed bottom-0 left-0 right-0 h-16 glassmorphism z-40 md:hidden flex items-center justify-around px-2 border-t border-neonBlue/30 shadow-[0_-5px_20px_rgba(0,243,255,0.15)]">
+    <button onclick="navigateTo('home')" class="mobile-nav-btn active flex flex-col items-center justify-center w-16 h-12 text-neonBlue transition duration-200">
+      <i data-lucide="globe" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-1 font-mono font-bold uppercase">Map</span>
+    </button>
+    <button onclick="openUploadStation()" class="mobile-nav-btn flex flex-col items-center justify-center w-16 h-12 text-gray-500 hover:text-neonPurple transition duration-200">
+      <i data-lucide="satellite-dish" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-1 font-mono font-bold uppercase">Station</span>
+    </button>
+    <button onclick="navigateToTrending()" class="mobile-nav-btn flex flex-col items-center justify-center w-16 h-12 text-gray-500 hover:text-neonPink transition duration-200">
+      <i data-lucide="flame" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-1 font-mono font-bold uppercase">Nova</span>
+    </button>
+    <button onclick="navigateTo('library')" class="mobile-nav-btn flex flex-col items-center justify-center w-16 h-12 text-gray-500 hover:text-neonPurple transition duration-200">
+      <i data-lucide="hard-drive" class="w-5 h-5"></i>
+      <span class="text-[9px] mt-1 font-mono font-bold uppercase">Data</span>
+    </button>
+  </nav>
+
+  <!-- ================= FLOATING ACTION BUTTON (COMMAND CENTER DIRECT) ================= -->
+  <button onclick="openUploadStation()" class="fixed bottom-20 md:bottom-6 right-6 z-40 bg-gradient-to-tr from-neonPurple to-neonPink p-4 rounded-full shadow-[0_0_20px_rgba(255,0,127,0.55)] border border-white/20 transition-transform hover:scale-115 active:scale-95 group hidden sm:flex" title="Upload Station Core">
+    <i data-lucide="satellite-dish" class="w-6 h-6 text-white group-hover:rotate-45 transition-transform"></i>
+  </button>
+
+  <!-- ================= SATELLITE UPLOAD STATION MODAL ================= -->
+  <div id="uploadStationModal" class="fixed inset-0 bg-spaceDark/90 backdrop-blur-md flex items-center justify-center z-50 hidden p-4">
+    <div class="glassmorphism rounded-3xl p-6 max-w-lg w-full border-2 border-neonPurple shadow-[0_0_50px_rgba(176,38,255,0.35)] relative overflow-hidden hologram-scanner">
+      
+      <!-- Scan Lines Decor -->
+      <div class="absolute inset-0 bg-[linear-gradient(transparent_50%,rgba(176,38,255,0.03)_50%)] bg-[length:100%_4px] pointer-events-none"></div>
+
+      <!-- Close Action -->
+      <button onclick="closeUploadStation()" class="absolute top-4 right-4 text-neonPurple hover:text-white transition">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+
+      <!-- Station Header -->
+      <div class="flex items-center space-x-3 mb-6 border-b border-neonPurple/20 pb-4">
+        <i data-lucide="satellite-dish" class="text-neonPurple w-7 h-7 animate-pulse"></i>
+        <div>
+          <h3 class="font-black text-lg font-mono uppercase tracking-widest text-white">🛰️ SATELLITE_UPLOAD_STATION</h3>
+          <p class="text-[9px] text-neonPurple font-mono uppercase tracking-widest">Construct custom planetary nodes</p>
+        </div>
+      </div>
+
+      <!-- Form container -->
+      <form id="uploadPlanetForm" onsubmit="handleGeneratePlanet(event)" class="space-y-4 text-sm font-mono text-gray-300">
+        <!-- Input ID helper hidden state -->
+        <input type="hidden" id="editPlanetId" value="">
+
+        <div>
+          <label class="block text-[10px] text-neonPurple uppercase tracking-widest mb-1.5">YouTube Link / Video Coordinates</label>
+          <input 
+            type="url" 
+            id="planetYoutubeUrl" 
+            placeholder="https://www.youtube.com/watch?v=..." 
+            class="w-full bg-spaceDark/90 border border-neonPurple/40 rounded-xl focus:border-neonPurple focus:shadow-[0_0_10px_rgba(176,38,255,0.4)] focus:outline-none px-4 py-2.5 text-xs text-white"
+            required
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[10px] text-neonPurple uppercase tracking-widest mb-1.5">Planet Identifier Title</label>
+            <input 
+              type="text" 
+              id="planetTitle" 
+              placeholder="e.g. Kepler-90h" 
+              class="w-full bg-spaceDark/90 border border-neonPurple/40 rounded-xl focus:border-neonPurple focus:outline-none px-4 py-2.5 text-xs text-white"
+              required
+            >
+          </div>
+          <div>
+            <label class="block text-[10px] text-neonPurple uppercase tracking-widest mb-1.5">Solar Category Sector</label>
+            <select id="planetCategory" class="w-full bg-spaceDark border border-neonPurple/40 rounded-xl focus:outline-none px-3 py-2.5 text-xs text-white">
+              <option value="Music">Music System</option>
+              <option value="Gaming">Gaming System</option>
+              <option value="Tech">Tech System</option>
+              <option value="Science">Science System</option>
+              <option value="Education">Education System</option>
+              <option value="Nature">Nature System</option>
+              <option value="Adventure">Adventure System</option>
+              <option value="Ambient">Ambient System</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[10px] text-neonPurple uppercase tracking-widest mb-1.5">Sector Decryption description</label>
+          <textarea 
+            id="planetDescription" 
+            rows="3" 
+            placeholder="Describe the planetary signal anomaly..." 
+            class="w-full bg-spaceDark/90 border border-neonPurple/40 rounded-xl focus:border-neonPurple focus:outline-none px-4 py-2.5 text-xs text-white"
+            required
+          ></textarea>
+        </div>
+
+        <!-- Planet Aesthetics Settings -->
+        <div class="grid grid-cols-2 gap-4 items-center">
+          <div>
+            <label class="block text-[10px] text-neonPurple uppercase tracking-widest mb-1.5">Planet Core Luminescence Color</label>
+            <div class="flex items-center space-x-2">
+              <input type="color" id="planetColor" value="#00f3ff" class="w-10 h-8 rounded bg-transparent border-0 cursor-pointer">
+              <span class="text-xs text-gray-400 font-mono" id="planetColorHex">#00f3ff</span>
+            </div>
+          </div>
+          <div class="text-right pt-4">
+            <button type="submit" id="generatePlanetBtn" class="w-full bg-neonPurple border border-neonPurple hover:bg-transparent hover:text-neonPurple text-white py-3 rounded-xl font-bold transition shadow-[0_0_15px_rgba(176,38,255,0.4)] text-xs">GENERATE PLANET</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= GALA-9 AI ASSISTANT PANEL ================= -->
+  <div id="aiAssistantPanel" class="fixed bottom-20 md:bottom-6 right-4 w-80 md:w-96 glassmorphism border-2 border-neonBlue rounded-3xl shadow-[0_0_35px_rgba(0,243,255,0.25)] hidden z-50 overflow-hidden flex flex-col">
+    <!-- Header -->
+    <div class="p-4 bg-neonBlue/10 border-b border-neonBlue/30 flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="cpu" class="w-5 h-5 text-neonBlue animate-pulse"></i>
+        <div>
+          <h4 class="font-bold text-xs text-white font-mono">GALA-9 NAVIGATOR CORE</h4>
+          <span class="text-[9px] text-neonBlue font-mono uppercase tracking-widest">Stellar Companion Online</span>
+        </div>
+      </div>
+      <button onclick="toggleAIAssistant()" class="text-neonBlue hover:text-white transition">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <!-- Messages space -->
+    <div id="aiChatMessages" class="p-4 space-y-3 h-64 overflow-y-auto text-xs font-mono">
+      <div class="bg-neonBlue/10 border border-neonBlue/20 p-2.5 rounded-lg text-gray-200">
+        Greetings Commander. I am GALA-9, your solar navigational entity. Ask me about custom uploads, sectors, black holes, or request a random planet jump sequence.
+      </div>
+    </div>
+    <!-- Input footer -->
+    <div class="p-3 border-t border-neonBlue/20 flex space-x-2 bg-spaceDark">
+      <input type="text" id="aiChatInput" placeholder="Command Navigator..." class="w-full bg-black border border-neonBlue/30 rounded-lg px-3 py-1.5 text-xs font-mono text-white focus:outline-none focus:border-neonBlue focus:shadow-[0_0_10px_rgba(0,243,255,0.3)]" onkeydown="handleAIChatKey(event)">
+      <button onclick="submitAIChat()" class="px-3 bg-neonBlue/15 border border-neonBlue/40 rounded-lg hover:bg-neonBlue text-neonBlue hover:text-spaceDark transition">
+        <i data-lucide="send" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= SYSTEM ACHIEVEMENTS PANEL ================= -->
+  <div id="achievementsPanel" class="fixed inset-0 bg-spaceDark/90 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+    <div class="glassmorphism rounded-3xl p-6 max-w-md w-full border-2 border-neonPink shadow-[0_0_35px_rgba(255,0,127,0.3)] relative">
+      <button onclick="toggleAchievementsPanel()" class="absolute top-4 right-4 text-neonPink hover:text-white">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      <div class="flex items-center space-x-3 mb-6 border-b border-neonPink/20 pb-4">
+        <i data-lucide="trophy" class="text-neonPink w-7 h-7"></i>
+        <h3 class="font-black text-lg font-mono uppercase tracking-widest text-white">Exploration Badges</h3>
+      </div>
+      <div id="achievementsContainer" class="space-y-3 max-h-80 overflow-y-auto pr-1">
+        <!-- Loaded achievements -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= FLOATING DRONE (MINI-PLAYER) ================= -->
+  <div id="miniPlayer" class="fixed bottom-20 md:bottom-6 right-4 w-72 sm:w-80 h-44 glassmorphism border border-neonPink rounded-xl shadow-[0_0_30px_rgba(255,0,127,0.3)] overflow-hidden z-50 hidden group transform translate-y-full">
+    <div id="miniPlayerVideoContainer" class="w-full h-full relative">
+      <div id="miniPlayerIframe" class="w-full h-full"></div>
+      <div class="absolute inset-x-0 top-0 bg-gradient-to-b from-spaceDark/90 to-transparent p-2 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+        <span class="text-[10px] uppercase font-mono truncate w-40 text-neonPink tracking-widest" id="miniPlayerTitle">Drone Feed</span>
+        <div class="flex items-center space-x-2">
+          <button onclick="expandMiniPlayer()" class="p-1 hover:bg-neonPink/20 rounded text-neonPink" title="Maximize">
+            <i data-lucide="maximize" class="w-4 h-4"></i>
+          </button>
+          <button onclick="closeMiniPlayer()" class="p-1 hover:bg-neonPink/20 rounded text-neonPink" title="Destroy Drone">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST NOTIFICATION CONTAINER ================= -->
+  <div id="toastContainer" class="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-auto md:w-96 flex flex-col space-y-2 z-50 pointer-events-none"></div>
+
+  <!-- ================= MANUAL OVERRIDES SHORTCUTS MODAL ================= -->
+  <div id="shortcutsModal" class="fixed inset-0 bg-spaceDark/90 backdrop-blur-sm flex items-center justify-center z-50 hidden p-4">
+    <div class="glassmorphism rounded-2xl p-6 max-w-md w-full border border-neonBlue shadow-[0_0_40px_rgba(0,243,255,0.2)] text-left relative">
+      <button onclick="toggleShortcutsModal()" class="absolute top-4 right-4 text-neonBlue hover:text-white transition">
+        <i data-lucide="x" class="w-6 h-6"></i>
+      </button>
+      <div class="flex items-center space-x-3 mb-6 border-b border-neonBlue/20 pb-4">
+        <i data-lucide="terminal" class="text-neonBlue w-6 h-6"></i>
+        <h3 class="font-black text-lg font-mono uppercase tracking-widest text-white">Solar Manual Overrides</h3>
+      </div>
+      <div class="space-y-4 text-sm font-mono text-gray-300">
+        <div class="flex justify-between items-center">
+          <span>Warp Feed Pause</span>
+          <kbd class="px-2 py-1 bg-neonBlue/20 border border-neonBlue text-neonBlue rounded text-[10px] font-bold">Space</kbd>
+        </div>
+        <div class="flex justify-between items-center">
+          <span>Audio Null</span>
+          <kbd class="px-2 py-1 bg-neonBlue/20 border border-neonBlue text-neonBlue rounded text-[10px] font-bold">M</kbd>
+        </div>
+        <div class="flex justify-between items-center">
+          <span>System Fullscreen</span>
+          <kbd class="px-2 py-1 bg-neonBlue/20 border border-neonBlue text-neonBlue rounded text-[10px] font-bold">F</kbd>
+        </div>
+        <div class="flex justify-between items-center">
+          <span>Jump Galaxy Sector Map</span>
+          <kbd class="px-2 py-1 bg-neonBlue/20 border border-neonBlue text-neonBlue rounded text-[10px] font-bold">H</kbd>
+        </div>
+        <div class="flex justify-between items-center">
+          <span>Voice Link Recognition</span>
+          <kbd class="px-2 py-1 bg-neonBlue/20 border border-neonBlue text-neonBlue rounded text-[10px] font-bold">V</kbd>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= VOICE RECOGNITION PANEL ================= -->
+  <div id="voiceSearchModal" class="fixed inset-0 bg-spaceDark/95 flex items-center justify-center z-50 hidden backdrop-blur-lg">
+    <div class="text-center space-y-8">
+      <div class="relative flex items-center justify-center">
+        <div class="absolute w-32 h-32 border border-neonBlue rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+        <div class="absolute w-48 h-48 border border-neonBlue/50 rounded-full animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]" style="animation-delay: 0.5s;"></div>
+        <button id="voiceCloseBtn" class="relative z-10 p-8 glassmorphism border-2 border-neonBlue hover:bg-neonBlue/20 rounded-full shadow-[0_0_30px_rgba(0,243,255,0.6)] transition duration-200 group">
+          <i data-lucide="mic" class="w-12 h-12 text-neonBlue group-hover:scale-110 transition-transform"></i>
+        </button>
+      </div>
+      <div class="space-y-3">
+        <h3 id="voiceStatus" class="font-mono font-black uppercase text-2xl tracking-widest text-neonBlue">Awaiting Audio Links...</h3>
+        <p id="voiceSpeechOutput" class="text-gray-400 text-xs max-w-md mx-auto font-mono">Speak sector name: "Music System"</p>
+      </div>
+      <button onclick="closeVoiceSearch()" class="text-[10px] uppercase font-mono tracking-widest text-neonPink hover:text-white border-b border-neonPink pb-1 transition">Abort voice link</button>
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT SYSTEM ENGINE ================= -->
+  <script>
+    // System Default Video Nodes (Built-in Galaxies)
+    const rawVideos = [
+      { id: "jfKfPfyJRdk", title: "Lofi Hip Hop Radio 📚 Beats to Relax/Study to", channel: "Lofi Girl", views: "142K watching", duration: "LIVE", uploaded: "24/7", category: "Music", description: "Welcome to the official Lofi Girl stream. Relax, study, work, or sleep to this selection of chill instrumentals.", subscribers: "14.3M", galaxyX: 1200, galaxyY: 700, planetSize: 1.25, color: "#9c27b0" },
+      { id: "dQw4w9WgXcQ", title: "Rick Astley - Never Gonna Give You Up", channel: "Rick Astley", views: "1.4B views", duration: "3:32", uploaded: "14 years ago", category: "Music", description: "The official video for 'Never Gonna Give You Up' by Rick Astley.", subscribers: "4.2M", galaxyX: 2500, galaxyY: 850, planetSize: 1.1, color: "#ff007f" },
+      { id: "tntOCGkgt98", title: "Deep Space Ambient Music for Focus, Study & Astral Travel", channel: "Space Wave", views: "2.3M views", duration: "3:00:00", uploaded: "6 months ago", category: "Ambient", description: "Immerse yourself in the cosmic vibrations of deep space ambient music.", subscribers: "850K", galaxyX: 1600, galaxyY: 450, planetSize: 1.35, color: "#00e5ff" },
+      { id: "2g811Eo7K8U", title: "10 Hours of Relaxing Rain Sounds - Sleep, Study, Meditation", channel: "Rainy Vibes", views: "15M views", duration: "10:00:00", uploaded: "2 years ago", category: "Nature", description: "Perfect black screen rain sounds for deep sleeping or studying.", subscribers: "1.2M", galaxyX: 1050, galaxyY: 1550, planetSize: 1.4, color: "#2e7d32" },
+      { id: "EngW7tLk6R8", title: "How Far Can We Go? Limits of Humanity", channel: "Kurzgesagt - In a Nutshell", views: "12M views", duration: "11:24", uploaded: "8 months ago", category: "Science", description: "How far into space can humanity go? Exploring our cosmic boundaries.", subscribers: "22M", galaxyX: 2200, galaxyY: 1400, planetSize: 1.2, color: "#e65100" },
+      { id: "P2g776v1K78", title: "M3 Max MacBook Pro Review: The Beast Is Back", channel: "Marques Brownlee", views: "4.5M views", duration: "18:15", uploaded: "1 year ago", category: "Tech", description: "Full review of the latest Apple Silicon powerhouse.", subscribers: "19M", galaxyX: 2800, galaxyY: 1850, planetSize: 1.05, color: "#ffd600" },
+      { id: "W6NZfCO5SIk", title: "JavaScript Tutorial for Beginners: Learn JS in 1 Hour", channel: "Programming with Mosh", views: "8.1M views", duration: "48:16", uploaded: "3 years ago", category: "Tech", description: "Learn JS in 1 hour with this clean introductory guide.", subscribers: "4.5M", galaxyX: 1750, galaxyY: 1800, planetSize: 1.15, color: "#39ff14" },
+      { id: "eI4an8aSsGw", title: "Exploring the Deepest Caves on Earth", channel: "National Geographic", views: "8.1M views", duration: "44:12", uploaded: "3 years ago", category: "Adventure", description: "Join scientific explorers as they map the absolute depths of the underworld.", subscribers: "21M", galaxyX: 1200, galaxyY: 2250, planetSize: 1.2, color: "#ff1744" }
+    ];
+
+    // System Achievements Log
+    const systemAchievements = [
+      { id: "first_discovery", title: "First Discovery", desc: "Launch and inspect any planetary solar link", icon: "binoculars" },
+      { id: "cosmic_creator", title: "Cosmic Creator", desc: "Generate a custom user planet inside the system", icon: "satellite-dish" },
+      { id: "singularity_warp", title: "Singularity Warp", desc: "Warp into the center point singularity VOID", icon: "radiation" },
+      { id: "destroyer_worlds", title: "Cosmic Destroyer", desc: "Demolish any created planet from existence", icon: "bomb" },
+      { id: "expert_comms", title: "Deep Comms Officer", desc: "Broadcast your transmission (Save Comment)", icon: "message-square" }
+    ];
+
+    // UI and Core State
+    const state = {
+      videos: [],
+      currentView: 'home',
+      currentVideo: null,
+      history: JSON.parse(localStorage.getItem('lt_history') || '[]'),
+      liked: JSON.parse(localStorage.getItem('lt_liked') || '[]'),
+      watchLater: JSON.parse(localStorage.getItem('lt_watchLater') || '[]'),
+      searchHistory: JSON.parse(localStorage.getItem('lt_search_history') || '[]'),
+      subscribers: JSON.parse(localStorage.getItem('lt_subscribers') || '[]'),
+      comments: JSON.parse(localStorage.getItem('lt_comments') || '{}'),
+      achievements: JSON.parse(localStorage.getItem('lt_achievements') || '[]'),
+      theme: localStorage.getItem('lt_theme') || 'dark',
+      currentCategory: 'All',
+      miniPlayerActive: false,
+      mapZoom: 1,
+      mapX: -1000,
+      mapY: -750,
+      isDragging: false,
+      dragStart: { x: 0, y: 0 }
+    };
+
+    // System Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      applyTheme(state.theme);
+      loadPlanetsAndBuild();
+      setupInteractiveMap();
+      setupEventHandlers();
+      updateExplorationHUD();
+    });
+
+    // Merge built-in nodes and Local Storage user-created worlds
+    function loadPlanetsAndBuild() {
+      const userPlanets = JSON.parse(localStorage.getItem('userVideos')) || [];
+      state.videos = [...rawVideos, ...userPlanets];
+      renderStellarSystem(state.videos);
+      renderConstellationNetwork(state.videos);
+    }
+
+    // Dynamic Color Mapping for Nebula shift
+    function getCategoryNebulaColor(category) {
+      switch(category) {
+        case 'Music': return 'radial-gradient(circle at 50% 50%, rgba(176,38,255,0.3) 0%, transparent 80%)';
+        case 'Gaming': return 'radial-gradient(circle at 50% 50%, rgba(255,23,68,0.25) 0%, transparent 80%)';
+        case 'Tech': return 'radial-gradient(circle at 50% 50%, rgba(0,229,255,0.3) 0%, transparent 80%)';
+        case 'Science': return 'radial-gradient(circle at 50% 50%, rgba(57,255,20,0.25) 0%, transparent 80%)';
+        case 'Education': return 'radial-gradient(circle at 50% 50%, rgba(255,214,0,0.2) 0%, transparent 80%)';
+        case 'Nature': return 'radial-gradient(circle at 50% 50%, rgba(46,125,50,0.3) 0%, transparent 80%)';
+        case 'Adventure': return 'radial-gradient(circle at 50% 50%, rgba(213,0,0,0.3) 0%, transparent 80%)';
+        case 'Ambient': return 'radial-gradient(circle at 50% 50%, rgba(156,39,176,0.3) 0%, transparent 80%)';
+        default: return 'radial-gradient(circle at 50% 50%, rgba(0,243,255,0.15) 0%, transparent 80%)';
+      }
+    }
+
+    // Star Theme apply
+    function applyTheme(theme) {
+      const html = document.documentElement;
+      const sunIcon = document.getElementById('themeSunIcon');
+      const moonIcon = document.getElementById('themeMoonIcon');
+      if (theme === 'light') {
+        html.classList.remove('dark');
+        html.classList.add('light');
+        sunIcon.classList.remove('hidden');
+        moonIcon.classList.add('hidden');
+      } else {
+        html.classList.remove('light');
+        html.classList.add('dark');
+        sunIcon.classList.add('hidden');
+        moonIcon.classList.remove('hidden');
+      }
+      localStorage.setItem('lt_theme', theme);
+      state.theme = theme;
+    }
+
+    // System Navigation Panel Switching
+    function navigateTo(viewId) {
+      const views = ['homeView', 'watchView', 'searchView', 'libraryView'];
+      state.currentView = viewId;
+
+      views.forEach(v => {
+        const el = document.getElementById(v);
+        if (v === `${viewId}View`) {
+          el.classList.add('active');
+          gsap.fromTo(el, { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.4 });
+        } else {
+          el.classList.remove('active');
+        }
+      });
+
+      updateNavHighlight(viewId);
+      if (viewId !== 'watch' && state.currentVideo && !state.miniPlayerActive) {
+        showMiniPlayer();
+      }
+    }
+
+    function updateNavHighlight(viewId) {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active', 'border-neonBlue', 'bg-neonBlue/10');
+        item.classList.add('border-transparent');
+        const icon = item.querySelector('.icon-indicator');
+        if (icon) icon.className = "w-5 h-5 text-gray-500 icon-indicator";
+      });
+      document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+        btn.classList.remove('text-neonBlue');
+        btn.classList.add('text-gray-500');
+      });
+
+      if (viewId === 'home') {
+        const activeItems = document.querySelectorAll('[onclick="navigateTo(\'home\')"]');
+        activeItems.forEach(el => {
+          el.classList.add('active');
+          if (!el.classList.contains('mobile-nav-btn')) {
+            el.classList.remove('border-transparent');
+            el.classList.add('border-neonBlue', 'bg-neonBlue/10');
+            const icon = el.querySelector('.icon-indicator');
+            if (icon) icon.className = "w-5 h-5 text-neonBlue icon-indicator";
+          } else {
+            el.classList.add('text-neonBlue');
+          }
+        });
+      } else if (viewId === 'library') {
+        const activeItems = document.querySelectorAll('[onclick="navigateTo(\'library\')"]');
+        activeItems.forEach(el => {
+          el.classList.add('active');
+          if (!el.classList.contains('mobile-nav-btn')) {
+            el.classList.remove('border-transparent');
+            el.classList.add('border-neonPurple', 'bg-neonPurple/10');
+            const icon = el.querySelector('.icon-indicator');
+            if (icon) icon.className = "w-5 h-5 text-neonPurple icon-indicator";
+          } else {
+            el.classList.add('text-neonPurple');
+          }
+        });
+      }
+    }
+
+    // Zoom and Recenter mechanics for space map navigation
+    function setupInteractiveMap() {
+      const container = document.getElementById('spaceMapContainer');
+      const map = document.getElementById('galaxyMap');
+
+      // Initialize map translation to center on singularity
+      updateMapTransform();
+
+      // Pan Mechanics
+      container.addEventListener('mousedown', (e) => {
+        if (e.target.closest('#centralSingularity') || e.target.closest('.planet-orb-node')) return;
+        state.isDragging = true;
+        state.dragStart = { x: e.clientX - state.mapX, y: e.clientY - state.mapY };
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!state.isDragging) return;
+        state.mapX = e.clientX - state.dragStart.x;
+        state.mapY = e.clientY - state.dragStart.y;
+        
+        // Constrain universe boundaries
+        state.mapX = Math.max(-2500, Math.min(500, state.mapX));
+        state.mapY = Math.max(-2000, Math.min(500, state.mapY));
+        updateMapTransform();
+      });
+
+      window.addEventListener('mouseup', () => state.isDragging = false);
+
+      // Mouse Wheel Zoom
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.05 : 0.95;
+        state.mapZoom = Math.max(0.4, Math.min(1.8, state.mapZoom * factor));
+        updateMapTransform();
+      });
+    }
+
+    function updateMapTransform() {
+      const map = document.getElementById('galaxyMap');
+      map.style.transform = `translate3d(${state.mapX}px, ${state.mapY}px, 0px) scale(${state.mapZoom})`;
+    }
+
+    function resetMapView() {
+      gsap.to(state, {
+        mapX: -1000,
+        mapY: -750,
+        mapZoom: 1,
+        duration: 0.8,
+        ease: "power3.out",
+        onUpdate: updateMapTransform
+      });
+      showToast("Celestial viewpoint reset");
+    }
+
+    function zoomMap(scaleOffset) {
+      state.mapZoom = Math.max(0.4, Math.min(1.8, state.mapZoom * scaleOffset));
+      updateMapTransform();
+    }
+
+    // Build the Explorable Galaxy Nodes (Planets System)
+    function renderStellarSystem(videoArray) {
+      const parent = document.getElementById('planetarySystem');
+      parent.innerHTML = '';
+
+      videoArray.forEach((video) => {
+        // Calculate dynamic values
+        const size = (video.planetSize || 1.1) * 70;
+        const orbitRadius = Math.sqrt(Math.pow(video.galaxyX - 2000, 2) + Math.pow(video.galaxyY - 1500, 2));
+
+        // Generate Orbit Track indicator
+        if (orbitRadius > 100) {
+          const orbitTrack = document.createElement('div');
+          orbitTrack.className = 'orbit-path';
+          orbitTrack.style.width = `${orbitRadius * 2}px`;
+          orbitTrack.style.height = `${orbitRadius * 2}px`;
+          orbitTrack.style.left = `${2000 - orbitRadius}px`;
+          orbitTrack.style.top = `${1500 - orbitRadius}px`;
+          parent.appendChild(orbitTrack);
+        }
+
+        // Planet Main Element
+        const node = document.createElement('div');
+        node.className = 'planet-orb-node absolute cursor-pointer select-none group z-10 flex flex-col items-center';
+        node.style.left = `${video.galaxyX - size / 2}px`;
+        node.style.top = `${video.galaxyY - size / 2}px`;
+        node.style.width = `${size}px`;
+        node.onclick = () => travelToPlanetNode(video);
+
+        node.innerHTML = `
+          <div class="relative rounded-full transition-all duration-700 hover:scale-115 flex items-center justify-center" style="width: ${size}px; height: ${size}px; box-shadow: 0 0 20px ${video.color || '#00f3ff'}50;">
+            <!-- Outer Glow Rings -->
+            <div class="absolute inset-[-15%] rounded-full border border-dashed pointer-events-none opacity-40 group-hover:opacity-100 group-hover:animate-spin" style="border-color: ${video.color || '#00f3ff'};"></div>
+            
+            <!-- Core Planet Sphere -->
+            <div class="w-full h-full rounded-full overflow-hidden border border-white/20 relative bg-spaceDark">
+              <img src="https://img.youtube.com/vi/${video.id}/hqdefault.jpg" alt="${video.title}" class="w-full h-full object-cover mix-blend-screen opacity-80 group-hover:opacity-100" onerror="this.src='https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=300&q=80'">
+              <div class="absolute inset-0 shadow-[inset_-6px_-6px_15px_rgba(0,0,0,0.85)] rounded-full"></div>
+            </div>
+          </div>
+          
+          <!-- Planet Tag Hologram -->
+          <div class="mt-4 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-neonBlue/20 text-center w-40 transform translate-y-1 group-hover:-translate-y-1 transition-all duration-500 shadow-[0_4px_15px_rgba(0,0,0,0.6)]">
+            <h4 class="text-[10px] font-bold text-gray-200 line-clamp-1 leading-tight font-mono">${video.title}</h4>
+            <p class="text-[8px] font-mono mt-0.5 uppercase tracking-widest truncate flex items-center justify-center space-x-1" style="color: ${video.color || '#00f3ff'}">
+              <span class="w-1.5 h-1.5 rounded-full animate-ping" style="background-color: ${video.color || '#00f3ff'}"></span>
+              <span>${video.channel}</span>
+            </p>
+          </div>
+        `;
+        parent.appendChild(node);
+      });
+    }
+
+    // Draw Constellation Path Overlay connecting related nodes
+    function renderConstellationNetwork(videoArray) {
+      const svg = document.getElementById('constellationSvg');
+      svg.innerHTML = '';
+
+      // Draw vector lines between sequential planets in coordinates map
+      for (let i = 0; i < videoArray.length - 1; i++) {
+        const start = videoArray[i];
+        const end = videoArray[i+1];
+        
+        // Skip connecting far out elements
+        const dist = Math.sqrt(Math.pow(end.galaxyX - start.galaxyX, 2) + Math.pow(end.galaxyY - start.galaxyY, 2));
+        if (dist > 900) continue;
+
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', start.galaxyX);
+        line.setAttribute('y1', start.galaxyY);
+        line.setAttribute('x2', end.galaxyX);
+        line.setAttribute('y2', end.galaxyY);
+        line.setAttribute('stroke', 'rgba(0, 243, 255, 0.2)');
+        line.setAttribute('stroke-width', '1.5');
+        line.setAttribute('stroke-dasharray', '5 5');
+        svg.appendChild(line);
+      }
+    }
+
+    // Stellar Travel Warp transition animation
+    function travelToPlanetNode(video) {
+      // Pan universe position directly to focus the targeted coordinates
+      const containerWidth = document.getElementById('spaceMapContainer').clientWidth;
+      const containerHeight = document.getElementById('spaceMapContainer').clientHeight;
+
+      const targetX = -(video.galaxyX) + (containerWidth / 2);
+      const targetY = -(video.galaxyY) + (containerHeight / 2);
+
+      // Trigger high speed warp camera movement with GSAP
+      gsap.to(state, {
+        mapX: targetX,
+        mapY: targetY,
+        mapZoom: 1.4,
+        duration: 1.2,
+        ease: "power4.inOut",
+        onUpdate: updateMapTransform,
+        onComplete: () => {
+          // Play the planetary video stream context
+          playVideo(video.id);
+          awardAchievement("first_discovery");
+        }
+      });
+
+      // Update nebula color overlay
+      const overlay = document.getElementById('nebulaColorOverlay');
+      overlay.style.background = getCategoryNebulaColor(video.category);
+      showToast(`Warpship coordinates set to planet: ${video.title}`);
+    }
+
+    // System Video player launch
+    function playVideo(videoId) {
+      const video = state.videos.find(v => v.id === videoId);
+      if (!video) return;
+
+      closeMiniPlayer();
+      state.currentVideo = video;
+      navigateTo('watch');
+
+      document.getElementById('watchVideoTitle').innerText = video.title;
+      document.getElementById('watchChannelName').innerText = video.channel;
+      document.getElementById('watchChannelInitials').innerText = video.channel.charAt(0);
+      document.getElementById('watchSubCount').innerText = `${video.subscribers || '1.2M'} Intercepts`;
+      document.getElementById('watchViewCount').innerText = video.views.split(' ')[0];
+      document.getElementById('watchUploadDate').innerText = video.uploaded;
+      document.getElementById('watchDescription').innerText = video.description;
+
+      // Reveal user actions if current planet belongs to user memory
+      const userPlanets = JSON.parse(localStorage.getItem('userVideos')) || [];
+      const isUserPlanet = userPlanets.some(p => p.id === video.id);
+      const userControls = document.getElementById('userPlanetControls');
+      if (isUserPlanet) {
+        userControls.classList.remove('hidden');
+      } else {
+        userControls.classList.add('hidden');
+      }
+
+      // Safe Subscription setup
+      const subBtn = document.getElementById('subscribeBtn');
+      if (state.subscribers.includes(video.channel)) {
+        subBtn.innerText = 'Connected Link';
+        subBtn.className = 'ml-4 bg-transparent border border-neonPurple text-neonPurple text-xs font-mono font-bold px-4 py-2 rounded-full transition';
+      } else {
+        subBtn.innerText = 'Subscribe Channel';
+        subBtn.className = 'ml-4 bg-neonPurple/20 border border-neonPurple hover:bg-neonPurple/40 text-white text-xs font-mono font-bold px-4 py-2 rounded-full transition shadow-[0_0_10px_rgba(176,38,255,0.4)]';
+      }
+
+      // Stream deployment
+      const placeholder = document.getElementById('youtubePlayerPlaceholder');
+      placeholder.innerHTML = `
+        <iframe 
+          id="activeIframe"
+          src="https://www.youtube.com/embed/${video.id}?autoplay=1&enablejsapi=1&rel=0" 
+          title="YouTube video player" 
+          frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+          allowfullscreen
+          class="w-full h-full mix-blend-screen"
+        ></iframe>
+      `;
+
+      updateWatchInteractions();
+      addToHistory(video);
+      renderRelatedVideos(video);
+      renderComments(video.id);
+    }
+
+    // Nearby exploration list
+    function renderRelatedVideos(currentVideo) {
+      const container = document.getElementById('relatedVideosContainer');
+      container.innerHTML = '';
+      const filtered = state.videos.filter(v => v.id !== currentVideo.id).slice(0, 5);
+
+      filtered.forEach(video => {
+        const item = document.createElement('div');
+        item.className = "flex space-x-3 cursor-pointer group hover:bg-neonPink/5 p-2 rounded-xl transition border border-transparent hover:border-neonPink/20";
+        item.onclick = () => playVideo(video.id);
+
+        item.innerHTML = `
+          <div class="relative w-20 h-14 flex-shrink-0 rounded-lg overflow-hidden border border-neonPink/30">
+            <img src="https://img.youtube.com/vi/${video.id}/hqdefault.jpg" alt="Anomaly" class="w-full h-full object-cover mix-blend-screen opacity-80 group-hover:opacity-100">
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-[11px] text-gray-200 line-clamp-2 leading-snug group-hover:text-neonPink transition">${video.title}</h4>
+            <p class="text-[9px] text-neonBlue font-mono mt-0.5 uppercase truncate">${video.channel}</p>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    function toggleDescriptionCollapse(button) {
+      const desc = document.getElementById('watchDescription');
+      if (desc.classList.contains('line-clamp-3')) {
+        desc.classList.remove('line-clamp-3');
+        button.innerText = '< COMPRESS LOGS';
+      } else {
+        desc.classList.add('line-clamp-3');
+        button.innerText = '> RENDER EXPANDED DATA';
+      }
+    }
+
+    // Dynamic Upload Station Hologram Modal Toggle
+    function openUploadStation() {
+      // Clean form state for new creation
+      document.getElementById('editPlanetId').value = "";
+      document.getElementById('planetYoutubeUrl').value = "";
+      document.getElementById('planetTitle').value = "";
+      document.getElementById('planetCategory').value = "Music";
+      document.getElementById('planetDescription').value = "";
+      document.getElementById('planetColor').value = "#00f3ff";
+      document.getElementById('planetColorHex').innerText = "#00f3ff";
+      document.getElementById('generatePlanetBtn').innerText = "GENERATE PLANET";
+
+      const modal = document.getElementById('uploadStationModal');
+      modal.classList.remove('hidden');
+      gsap.fromTo(modal.children[0], { scale: 0.85, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.35, ease: "back.out" });
+    }
+
+    function closeUploadStation() {
+      const modal = document.getElementById('uploadStationModal');
+      gsap.to(modal.children[0], { scale: 0.85, opacity: 0, duration: 0.25, onComplete: () => modal.classList.add('hidden') });
+    }
+
+    // Extract YouTube ID cleanly
+    function getYoutubeID(url) {
+      const reg = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+      const match = url.match(reg);
+      return (match && match[1].length === 11) ? match[1] : null;
+    }
+
+    // Planetary Creation Flow
+    function handleGeneratePlanet(e) {
+      e.preventDefault();
+      
+      const editId = document.getElementById('editPlanetId').value;
+      const url = document.getElementById('planetYoutubeUrl').value.trim();
+      const title = document.getElementById('planetTitle').value.trim();
+      const category = document.getElementById('planetCategory').value;
+      const description = document.getElementById('planetDescription').value.trim();
+      const color = document.getElementById('planetColor').value;
+
+      const videoId = getYoutubeID(url);
+      if (!videoId) {
+        showToast("ERROR: Invalid YouTube coordinates URL.");
+        return;
+      }
+
+      const userPlanets = JSON.parse(localStorage.getItem('userVideos')) || [];
+
+      if (editId) {
+        // Edit flow
+        const idx = userPlanets.findIndex(p => p.id === editId);
+        if (idx > -1) {
+          userPlanets[idx].title = title;
+          userPlanets[idx].category = category;
+          userPlanets[idx].description = description;
+          userPlanets[idx].color = color;
+          userPlanets[idx].id = videoId; // In case URL changed
+        }
+        localStorage.setItem('userVideos', JSON.stringify(userPlanets));
+        showToast("Planet coordinates updated successfully!");
+      } else {
+        // Build new planet node with random solar placements
+        const newPlanet = {
+          id: videoId,
+          title: title,
+          category: category,
+          description: description,
+          channel: "Star Voyager",
+          uploaded: "Just now",
+          views: "1 scan",
+          duration: "SYSTEM",
+          color: color,
+          galaxyX: Math.floor(Math.random() * 1800) + 1100, // Safe distance from singularity
+          galaxyY: Math.floor(Math.random() * 1200) + 900,
+          planetSize: parseFloat((Math.random() * 0.4 + 1.0).toFixed(2)),
+          subscribers: "1 connection"
+        };
+
+        userPlanets.push(newPlanet);
+        localStorage.setItem('userVideos', JSON.stringify(userPlanets));
+        
+        // Trigger warping animation flash effect
+        triggerUniverseWarpFlash();
+        showToast("Planet Successfully Formed in Galaxy!");
+        awardAchievement("cosmic_creator");
+      }
+
+      closeUploadStation();
+      loadPlanetsAndBuild();
+      updateExplorationHUD();
+    }
+
+    // Launch edit modal context
+    function editPlanetForm() {
+      if (!state.currentVideo) return;
+      const video = state.currentVideo;
+
+      document.getElementById('editPlanetId').value = video.id;
+      document.getElementById('planetYoutubeUrl').value = `https://www.youtube.com/watch?v=${video.id}`;
+      document.getElementById('planetTitle').value = video.title;
+      document.getElementById('planetCategory').value = video.category;
+      document.getElementById('planetDescription').value = video.description;
+      document.getElementById('planetColor').value = video.color || "#00f3ff";
+      document.getElementById('planetColorHex').innerText = video.color || "#00f3ff";
+      document.getElementById('generatePlanetBtn').innerText = "SAVE CHANGES";
+
+      const modal = document.getElementById('uploadStationModal');
+      modal.classList.remove('hidden');
+    }
+
+    // Demolish User-made Planet Anomaly
+    function destroyPlanet() {
+      if (!state.currentVideo) return;
+      const video = state.currentVideo;
+
+      if (confirm(`Confirm planetary core self-destruction of node: ${video.title}?`)) {
+        let userPlanets = JSON.parse(localStorage.getItem('userVideos')) || [];
+        userPlanets = userPlanets.filter(p => p.id !== video.id);
+        localStorage.setItem('userVideos', JSON.stringify(userPlanets));
+
+        // Purge comments & libraries
+        state.liked = state.liked.filter(v => v.id !== video.id);
+        state.watchLater = state.watchLater.filter(v => v.id !== video.id);
+        state.history = state.history.filter(v => v.id !== video.id);
+        
+        localStorage.setItem('lt_liked', JSON.stringify(state.liked));
+        localStorage.setItem('lt_watchLater', JSON.stringify(state.watchLater));
+        localStorage.setItem('lt_history', JSON.stringify(state.history));
+
+        showToast(`Demolished planet node: ${video.title}`);
+        awardAchievement("destroyer_worlds");
+
+        // Recenter back
+        navigateTo('home');
+        loadPlanetsAndBuild();
+        updateExplorationHUD();
+      }
+    }
+
+    // Singularity Warp sequence simulator
+    function warpIntoSingularity() {
+      triggerUniverseWarpFlash();
+      
+      setTimeout(() => {
+        // Select random stellar coordinate and play
+        const randomPlanet = state.videos[Math.floor(Math.random() * state.videos.length)];
+        travelToPlanetNode(randomPlanet);
+        awardAchievement("singularity_warp");
+        showToast("Singularity traversal complete! Glitched coordinates selected.");
+      }, 500);
+    }
+
+    // Warp Flash VFX
+    function triggerUniverseWarpFlash() {
+      const flash = document.createElement('div');
+      flash.className = 'fixed inset-0 bg-white z-50 pointer-events-none transition-opacity duration-1000';
+      document.body.appendChild(flash);
+      
+      setTimeout(() => {
+        flash.style.opacity = '0';
+        setTimeout(() => flash.remove(), 1000);
+      }, 50);
+    }
+
+    // Backup Export
+    function exportGalaxyBackup() {
+      const userPlanets = localStorage.getItem('userVideos') || "[]";
+      const blob = new Blob([userPlanets], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = "my-galaxy-backup.json";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast("Galaxy System Manifest Exported Successfully!");
+    }
+
+    // Backup Import
+    function importGalaxyBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported)) {
+            localStorage.setItem('userVideos', JSON.stringify(imported));
+            showToast("Galaxy System Manifest Restored! Syncing Cosmos...");
+            loadPlanetsAndBuild();
+            updateExplorationHUD();
+          } else {
+            showToast("ERROR: Manifest file format corrupted.");
+          }
+        } catch (err) {
+          showToast("ERROR: Invalid celestial manifest data.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Category sector jumper filter
+    function filterVideosByCategory(category) {
+      state.currentCategory = category;
+      const chips = document.querySelectorAll('.category-chip');
+      chips.forEach(chip => {
+        if (chip.textContent.includes(category) || (category === 'All' && chip.textContent.includes('All Sectors'))) {
+          chip.className = 'category-chip active px-4 py-1.5 bg-neonBlue/25 border border-neonBlue text-neonBlue text-xs font-mono font-bold rounded-full whitespace-nowrap shadow-[0_0_10px_rgba(0,243,255,0.3)] transition-all';
+        } else {
+          chip.className = 'category-chip px-4 py-1.5 bg-transparent border border-white/20 hover:border-neonPurple text-gray-300 hover:text-neonPurple text-xs font-mono rounded-full whitespace-nowrap transition-all';
+        }
+      });
+
+      document.getElementById('categorySectionTitle').innerText = category === 'All' ? 'Discovered Planets' : `Sector: ${category}`;
+
+      // Change background nebula overlay color
+      const overlay = document.getElementById('nebulaColorOverlay');
+      overlay.style.background = getCategoryNebulaColor(category);
+
+      simulateSkeletonLoad();
+
+      setTimeout(() => {
+        const filtered = category === 'All' ? state.videos : state.videos.filter(v => v.category === category);
+        renderStellarSystem(filtered);
+      }, 500);
+    }
+
+    function navigateToTrending() {
+      navigateTo('home');
+      filterVideosByCategory('All');
+      document.getElementById('categorySectionTitle').innerText = "🔥 SUPERNOVAS: HIGH ACTIVITY HOTSPOTS";
+      const sorted = [...state.videos].sort(() => Math.random() - 0.5);
+      renderStellarSystem(sorted);
+      showToast("Tuned telemetry to high activity supernovas.");
+    }
+
+    // Comms Links Posting Comments System
+    function renderComments(videoId) {
+      const container = document.getElementById('commentsContainer');
+      container.innerHTML = '';
+
+      const defaultComments = [
+        { author: "Cmdr. G. Evans", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&q=80", text: "Stellar telemetry signals match. Sub-space compression stable.", date: "1 cycle ago" },
+        { author: "Officer Wu", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80", text: "Commencing sector log storage now. Excellent constellation rendering.", date: "4 cycles ago" }
+      ];
+
+      const customComments = state.comments[videoId] || [];
+      const combined = [...customComments, ...defaultComments];
+
+      document.getElementById('commentCount').innerText = combined.length;
+
+      combined.forEach(c => {
+        const div = document.createElement('div');
+        div.className = "flex space-x-3 text-sm border-b border-neonBlue/10 pb-3";
+        div.innerHTML = `
+          <img src="${c.avatar}" alt="User" class="w-9 h-9 rounded-full border border-neonPurple object-cover">
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="font-bold text-xs text-neonBlue font-mono">${c.author}</span>
+              <span class="text-[9px] text-gray-500 font-mono">[${c.date}]</span>
+            </div>
+            <p class="text-gray-300 text-xs mt-1 leading-relaxed font-mono">${c.text}</p>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function cancelComment() {
+      document.getElementById('commentInput').value = '';
+    }
+
+    function submitComment() {
+      if (!state.currentVideo) return;
+      const input = document.getElementById('commentInput');
+      const val = input.value.trim();
+      if (!val) return;
+
+      const videoId = state.currentVideo.id;
+      if (!state.comments[videoId]) state.comments[videoId] = [];
+
+      state.comments[videoId].unshift({
+        author: "Cmdr. Jane Doe",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80",
+        text: val,
+        date: "just now"
+      });
+
+      localStorage.setItem('lt_comments', JSON.stringify(state.comments));
+      input.value = '';
+      renderComments(videoId);
+      showToast("Transmission broadcast successful!");
+      awardAchievement("expert_comms");
+    }
+
+    // GALA-9 AI Assistant Orb Interactive Logic
+    function toggleAIAssistant() {
+      const panel = document.getElementById('aiAssistantPanel');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) {
+        gsap.from(panel, { y: 30, opacity: 0, duration: 0.3 });
+      }
+    }
+
+    function handleAIChatKey(e) {
+      if (e.key === 'Enter') submitAIChat();
+    }
+
+    function submitAIChat() {
+      const input = document.getElementById('aiChatInput');
+      const query = input.value.trim();
+      if (!query) return;
+
+      const chat = document.getElementById('aiChatMessages');
+      
+      // Post user message
+      const userDiv = document.createElement('div');
+      userDiv.className = "text-right text-neonPink font-mono text-[11px] mb-1.5";
+      userDiv.innerText = `Commander: ${query}`;
+      chat.appendChild(userDiv);
+      input.value = '';
+
+      // Generate AI Nav answers
+      setTimeout(() => {
+        const aiDiv = document.createElement('div');
+        aiDiv.className = "bg-neonBlue/10 border border-neonBlue/20 p-2 rounded-lg text-gray-200 mb-1.5";
+        
+        let response = "Scanning solar queries... Commander, I suggest initiating Warp Singularity on the core map to randomise system travel coordinates.";
+        if (query.toLowerCase().includes("upload") || query.toLowerCase().includes("station")) {
+          response = "Initiate custom solar coordinates via satellite upload station! Paste any YouTube video coordinates.";
+        } else if (query.toLowerCase().includes("achieve") || query.toLowerCase().includes("badge")) {
+          response = "Explore the galaxy map to unlock hidden system achievements such as the Black Hole warp sequence.";
+        }
+
+        aiDiv.innerText = `GALA-9: ${response}`;
+        chat.appendChild(aiDiv);
+        chat.scrollTop = chat.scrollHeight;
+      }, 500);
+    }
+
+    // Achievements System
+    function awardAchievement(id) {
+      if (state.achievements.includes(id)) return;
+      state.achievements.push(id);
+      localStorage.setItem('lt_achievements', JSON.stringify(state.achievements));
+
+      const meta = systemAchievements.find(a => a.id === id);
+      if (meta) {
+        showToast(`🏆 ACHIEVEMENT UNLOCKED: ${meta.title}!`);
+      }
+    }
+
+    function toggleAchievementsPanel() {
+      const modal = document.getElementById('achievementsPanel');
+      modal.classList.toggle('hidden');
+      if (!modal.classList.contains('hidden')) {
+        renderAchievements();
+        gsap.from(modal.children[0], { scale: 0.9, opacity: 0, duration: 0.3, ease: "back.out" });
+      }
+    }
+
+    function renderAchievements() {
+      const container = document.getElementById('achievementsContainer');
+      container.innerHTML = '';
+
+      systemAchievements.forEach(a => {
+        const unlocked = state.achievements.includes(a.id);
+        const item = document.createElement('div');
+        item.className = `flex items-center space-x-3 p-3 rounded-xl border ${unlocked ? 'border-neonPink bg-neonPink/5' : 'border-white/10 opacity-50 bg-black/40'} font-mono`;
+        item.innerHTML = `
+          <div class="p-2.5 rounded-lg ${unlocked ? 'bg-neonPink/20 text-neonPink animate-bounce' : 'bg-white/5 text-gray-500'}">
+            <i data-lucide="${a.icon}" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold ${unlocked ? 'text-neonPink' : 'text-gray-400'}">${a.title}</h4>
+            <p class="text-[9px] text-gray-400">${a.desc}</p>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    function updateExplorationHUD() {
+      const total = state.videos.length;
+      const visited = state.history.length;
+      const percent = total > 0 ? Math.min(100, Math.floor((visited / total) * 100)) : 0;
+      document.getElementById('explorationProgressHUD').innerText = `Progress: ${percent}% Explored`;
+    }
+
+    // Library rendering logic
+    function viewLibrarySection(section) {
+      navigateTo('library');
+      renderLibraryView();
+      const el = {
+        history: 'libraryHistoryGrid',
+        liked: 'libraryLikedGrid',
+        watchLater: 'librarySavedGrid'
+      }[section];
+      if (el) document.getElementById(el).scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderLibraryView() {
+      renderSmallLibraryGrid('libraryHistoryGrid', state.history, 'Stellar log empty.', 'neonBlue');
+      renderSmallLibraryGrid('librarySavedGrid', state.watchLater, 'Hypersleep pods empty.', 'yellow-500');
+      renderSmallLibraryGrid('libraryLikedGrid', state.liked, 'Favorable signals empty.', 'neonPink');
+    }
+
+    function renderSmallLibraryGrid(elementId, list, emptyText, colorTheme) {
+      const grid = document.getElementById(elementId);
+      grid.innerHTML = '';
+
+      if (list.length === 0) {
+        grid.innerHTML = `<div class="col-span-full text-xs font-mono text-gray-500 uppercase">${emptyText}</div>`;
+        return;
+      }
+
+      list.slice(0, 6).forEach(video => {
+        const div = document.createElement('div');
+        div.className = "cursor-pointer space-y-1.5 group text-center flex flex-col items-center select-none";
+        div.onclick = () => playVideo(video.id);
+
+        div.innerHTML = `
+          <div class="relative w-16 h-16 rounded-full overflow-hidden border border-${colorTheme}/30 group-hover:border-${colorTheme} transition shadow-[0_0_10px_rgba(255,255,255,0.05)]">
+            <img src="https://img.youtube.com/vi/${video.id}/hqdefault.jpg" alt="Thum" class="w-full h-full object-cover opacity-80 mix-blend-screen group-hover:scale-105">
+          </div>
+          <h4 class="font-bold text-[9px] text-gray-300 font-mono line-clamp-1 truncate w-20 group-hover:text-white">${video.title}</h4>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    // Constellation System Recommended Items mapping
+    function renderConstellationNetwork(videoArray) {
+      const parent = document.getElementById('constellationRecommendationsGrid');
+      parent.innerHTML = '';
+
+      // Map random recommendations
+      const recommendations = [...videoArray].sort(() => Math.random() - 0.5).slice(0, 4);
+      recommendations.forEach(video => {
+        const item = document.createElement('div');
+        item.className = "cursor-pointer group flex flex-col items-center bg-black/40 border border-neonBlue/20 rounded-2xl p-2.5 transition hover:bg-neonBlue/10 hover:border-neonBlue text-center";
+        item.onclick = () => travelToPlanetNode(video);
+
+        item.innerHTML = `
+          <div class="relative w-14 h-14 rounded-full overflow-hidden border border-white/20">
+            <img src="https://img.youtube.com/vi/${video.id}/hqdefault.jpg" alt="Icon" class="w-full h-full object-cover opacity-85">
+          </div>
+          <span class="text-[9px] font-mono text-neonBlue font-bold mt-2 line-clamp-1 w-full">${video.title}</span>
+        `;
+        parent.appendChild(item);
+      });
+    }
+
+    // System Interactions Likes/Saves
+    function updateWatchInteractions() {
+      if (!state.currentVideo) return;
+      const videoId = state.currentVideo.id;
+
+      const isLiked = state.liked.some(v => v.id === videoId);
+      const likeText = document.getElementById('likeText');
+      const likeBtn = document.getElementById('likeBtn');
+      if (isLiked) {
+        likeText.innerText = "Energized";
+        likeBtn.classList.add('bg-neonBlue/20', 'border-neonBlue', 'shadow-[0_0_15px_#00f3ff]');
+      } else {
+        likeText.innerText = "Energize";
+        likeBtn.classList.remove('bg-neonBlue/20', 'border-neonBlue', 'shadow-[0_0_15px_#00f3ff]');
+      }
+
+      const isSaved = state.watchLater.some(v => v.id === videoId);
+      const wlText = document.getElementById('watchLaterText');
+      const wlBtn = document.getElementById('watchLaterBtn');
+      if (isSaved) {
+        wlText.innerText = "Stored Log";
+        wlBtn.classList.add('bg-neonPurple/20', 'border-neonPurple', 'shadow-[0_0_15px_#b026ff]');
+      } else {
+        wlText.innerText = "Store Log";
+        wlBtn.classList.remove('bg-neonPurple/20', 'border-neonPurple', 'shadow-[0_0_15px_#b026ff]');
+      }
+    }
+
+    function toggleLikeCurrent() {
+      if (!state.currentVideo) return;
+      const index = state.liked.findIndex(v => v.id === state.currentVideo.id);
+
+      if (index > -1) {
+        state.liked.splice(index, 1);
+        showToast("Solar signal de-energized.");
+      } else {
+        state.liked.push(state.currentVideo);
+        showToast("Solar signal energized!");
+      }
+      localStorage.setItem('lt_liked', JSON.stringify(state.liked));
+      updateWatchInteractions();
+    }
+
+    function toggleWatchLaterCurrent() {
+      if (!state.currentVideo) return;
+      const index = state.watchLater.findIndex(v => v.id === state.currentVideo.id);
+
+      if (index > -1) {
+        state.watchLater.splice(index, 1);
+        showToast("Log purged from Memory Bank");
+      } else {
+        state.watchLater.push(state.currentVideo);
+        showToast("Log stored safely in Hypersleep database.");
+      }
+      localStorage.setItem('lt_watchLater', JSON.stringify(state.watchLater));
+      updateWatchInteractions();
+    }
+
+    function toggleSubscribe() {
+      if (!state.currentVideo) return;
+      const channel = state.currentVideo.channel;
+      const subBtn = document.getElementById('subscribeBtn');
+
+      if (state.subscribers.includes(channel)) {
+        state.subscribers = state.subscribers.filter(c => c !== channel);
+        subBtn.innerText = 'Subscribe Channel';
+        subBtn.className = 'ml-4 bg-neonPurple/20 border border-neonPurple text-white text-xs font-mono font-bold px-4 py-2 rounded-full transition hover:bg-neonPurple/40 shadow-[0_0_10px_rgba(176,38,255,0.4)]';
+        showToast(`Comm-link severed: ${channel}`);
+      } else {
+        state.subscribers.push(channel);
+        subBtn.innerText = 'Connected Link';
+        subBtn.className = 'ml-4 bg-transparent border border-neonPurple text-neonPurple text-xs font-mono font-bold px-4 py-2 rounded-full transition';
+        showToast(`Stellar comm-link set: ${channel}`);
+      }
+      localStorage.setItem('lt_subscribers', JSON.stringify(state.subscribers));
+    }
+
+    function addToHistory(video) {
+      state.history = state.history.filter(v => v.id !== video.id);
+      state.history.unshift(video);
+      localStorage.setItem('lt_history', JSON.stringify(state.history));
+      updateExplorationHUD();
+    }
+
+    function clearAllHistory() {
+      state.history = [];
+      state.liked = [];
+      state.watchLater = [];
+      localStorage.removeItem('lt_history');
+      localStorage.removeItem('lt_liked');
+      localStorage.removeItem('lt_watchLater');
+      showToast("Memory systems completely cleared.");
+      renderLibraryView();
+      updateExplorationHUD();
+    }
+
+    // Mini-player drone mode
+    function showMiniPlayer() {
+      if (!state.currentVideo) return;
+      const mini = document.getElementById('miniPlayer');
+      const miniIframe = document.getElementById('miniPlayerIframe');
+      const miniTitle = document.getElementById('miniPlayerTitle');
+
+      miniTitle.innerText = state.currentVideo.title;
+      miniIframe.innerHTML = `
+        <iframe 
+          src="https://www.youtube.com/embed/${state.currentVideo.id}?autoplay=1&mute=1&enablejsapi=1&rel=0" 
+          frameborder="0" 
+          class="w-full h-full mix-blend-screen"
+        ></iframe>
+      `;
+      mini.classList.remove('hidden');
+      gsap.to(mini, { y: 0, duration: 0.5, ease: "back.out(1.2)" });
+      state.miniPlayerActive = true;
+    }
+
+    function expandMiniPlayer() {
+      if (state.currentVideo) playVideo(state.currentVideo.id);
+    }
+
+    function closeMiniPlayer() {
+      const mini = document.getElementById('miniPlayer');
+      const miniIframe = document.getElementById('miniPlayerIframe');
+      gsap.to(mini, { 
+        y: '150%', duration: 0.4, ease: "power2.in", 
+        onComplete: () => {
+          miniIframe.innerHTML = '';
+          mini.classList.add('hidden');
+        } 
+      });
+      state.miniPlayerActive = false;
+    }
+
+    function shareCurrentVideo() {
+      if (!state.currentVideo) return;
+      const url = `https://youtu.be/${state.currentVideo.id}`;
+      const dummy = document.createElement("input");
+      document.body.appendChild(dummy);
+      dummy.value = url;
+      dummy.select();
+      document.execCommand("copy");
+      document.body.removeChild(dummy);
+      showToast("Celestial Coordinates Copied to Clipboard.");
+    }
+
+    // Suggestions List Search Matcher
+    const searchInput = document.getElementById('searchInput');
+    const searchForm = document.getElementById('searchForm');
+    const suggestions = document.getElementById('searchSuggestions');
+    const suggestionsList = document.getElementById('suggestionsList');
+
+    searchInput.addEventListener('input', debounce((e) => {
+      const query = e.target.value.trim().toLowerCase();
+      if (!query) {
+        suggestions.classList.add('hidden');
+        return;
+      }
+      const matches = state.videos.filter(v => 
+        v.title.toLowerCase().includes(query) || 
+        v.category.toLowerCase().includes(query) ||
+        v.channel.toLowerCase().includes(query)
+      );
+      renderSuggestions(matches, query);
+    }, 250));
+
+    function renderSuggestions(matches, query) {
+      suggestionsList.innerHTML = '';
+      if (matches.length === 0) {
+        suggestions.classList.add('hidden');
+        return;
+      }
+      suggestions.classList.remove('hidden');
+      matches.slice(0, 5).forEach(match => {
+        const item = document.createElement('div');
+        item.className = "flex items-center space-x-3 px-4 py-3 hover:bg-neonBlue/20 cursor-pointer text-xs font-mono border-b border-neonBlue/10 last:border-0 text-white";
+        item.onclick = () => {
+          searchInput.value = match.title;
+          suggestions.classList.add('hidden');
+          executeSearch(match.title);
+        };
+        item.innerHTML = `
+          <i data-lucide="crosshair" class="w-4 h-4 text-neonBlue animate-spin"></i>
+          <span>${match.title}</span>
+        `;
+        suggestionsList.appendChild(item);
+      });
+      lucide.createIcons();
+    }
+
+    searchForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      suggestions.classList.add('hidden');
+      executeSearch(searchInput.value.trim());
+    });
+
+    function executeSearch(query) {
+      if (!query) return;
+      navigateTo('search');
+      document.getElementById('searchQueryTitle').innerText = query;
+
+      let results = state.videos.filter(v => 
+        v.title.toLowerCase().includes(query.toLowerCase()) || 
+        v.channel.toLowerCase().includes(query.toLowerCase()) ||
+        v.category.toLowerCase().includes(query.toLowerCase()) ||
+        v.description.toLowerCase().includes(query.toLowerCase())
+      );
+
+      if (!state.searchHistory.includes(query)) {
+        state.searchHistory.unshift(query);
+        localStorage.setItem('lt_search_history', JSON.stringify(state.searchHistory));
+      }
+
+      renderSearchResults(results);
+    }
+
+    function toggleSearchFilters() {
+      const panel = document.getElementById('searchFiltersPanel');
+      panel.classList.toggle('hidden');
+    }
+
+    document.getElementById('filterUploadDate').addEventListener('change', runFilterSearch);
+    document.getElementById('filterDuration').addEventListener('change', runFilterSearch);
+    document.getElementById('filterSort').addEventListener('change', runFilterSearch);
+
+    function runFilterSearch() {
+      const durationVal = document.getElementById('filterDuration').value;
+      const sortVal = document.getElementById('filterSort').value;
+      const query = searchInput.value.trim().toLowerCase();
+
+      let results = state.videos;
+
+      if (query) {
+        results = results.filter(v => 
+          v.title.toLowerCase().includes(query) || 
+          v.channel.toLowerCase().includes(query) ||
+          v.category.toLowerCase().includes(query)
+        );
+      }
+
+      if (durationVal === 'short') {
+        results = results.filter(v => {
+          const parts = v.duration.split(':');
+          if (parts.length > 2) return false;
+          return parseInt(parts[0]) < 4;
+        });
+      } else if (durationVal === 'long') {
+        results = results.filter(v => {
+          const parts = v.duration.split(':');
+          if (parts.length > 2) return true;
+          return parseInt(parts[0]) > 20;
+        });
+      }
+
+      if (sortVal === 'views') {
+        results.sort((a, b) => b.views.localeCompare(a.views));
+      }
+
+      renderSearchResults(results);
+    }
+
+    function renderSearchResults(results) {
+      const container = document.getElementById('searchResultsList');
+      container.innerHTML = '';
+
+      if (results.length === 0) {
+        container.innerHTML = `
+          <div class="py-16 text-center space-y-4">
+            <i data-lucide="radio-receiver" class="w-16 h-16 text-neonBlue/50 mx-auto animate-pulse"></i>
+            <h3 class="font-bold text-lg font-mono text-neonBlue tracking-widest uppercase">No Celestial Signals Detected</h3>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      results.forEach((video) => {
+        const item = document.createElement('div');
+        item.className = "signal-card flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6 cursor-pointer group glassmorphism p-4 rounded-3xl hover:bg-neonBlue/10 transition duration-300 border border-neonBlue/20 relative overflow-hidden";
+        item.onclick = () => playVideo(video.id);
+
+        item.innerHTML = `
+          <div class="relative w-full md:w-72 aspect-video rounded-2xl overflow-hidden bg-black flex-shrink-0 border border-transparent group-hover:border-neonBlue transition-all">
+            <img src="https://img.youtube.com/vi/${video.id}/hqdefault.jpg" alt="${video.title}" class="w-full h-full object-cover mix-blend-screen opacity-80 group-hover:scale-105 transition-transform duration-500">
+            <span class="absolute bottom-2 right-2 bg-spaceDark border border-neonBlue/50 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-neonBlue">${video.duration}</span>
+          </div>
+          <div class="flex-1 min-w-0 space-y-3">
+            <h3 class="font-black text-lg text-white font-mono group-hover:text-neonBlue transition">${video.title}</h3>
+            <div class="flex items-center space-x-2 text-xs text-neonPink font-mono tracking-widest uppercase">
+              <span>Freq: ${video.views}</span>
+              <span>|</span>
+              <span>T-${video.uploaded}</span>
+            </div>
+            <div class="flex items-center space-x-3 py-1">
+              <div class="w-8 h-8 rounded-full border border-neonPurple flex items-center justify-center font-bold text-xs text-neonPurple bg-spaceDark">${video.channel.charAt(0)}</div>
+              <span class="text-sm text-gray-300 font-mono tracking-wider">${video.channel}</span>
+            </div>
+            <p class="text-xs text-gray-400 font-mono line-clamp-2 leading-relaxed pl-3 border-l-2 border-neonBlue/30">${video.description}</p>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+
+      lucide.createIcons();
+      gsap.from(".signal-card", { x: -30, opacity: 0, stagger: 0.08, duration: 0.4 });
+    }
+
+    // Voice Input link Web Speech API controls
+    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+    const voiceSearchModal = document.getElementById('voiceSearchModal');
+    const voiceStatus = document.getElementById('voiceStatus');
+    const voiceSpeechOutput = document.getElementById('voiceSpeechOutput');
+
+    let recognition = null;
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechGen = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechGen();
+      recognition.continuous = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        voiceStatus.innerText = "LINKING COMM DECK...";
+        voiceSpeechOutput.innerText = 'Calibrating micro-vibrations... Speak now';
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        voiceSpeechOutput.innerText = `>> "${transcript}"`;
+        voiceStatus.innerText = "DECRYPTING LOGS...";
+        
+        setTimeout(() => {
+          closeVoiceSearch();
+          searchInput.value = transcript;
+          executeSearch(transcript);
+        }, 1200);
+      };
+
+      recognition.onerror = () => {
+        voiceStatus.innerText = "COMM DECK FAILURE";
+        voiceSpeechOutput.innerText = "Unable to route audio signal correctly.";
+      };
+    }
+
+    voiceSearchBtn.addEventListener('click', () => {
+      if (!recognition) {
+        showToast("Comm-Link Speech API blocked in current navigator.");
+        return;
+      }
+      voiceSearchModal.classList.remove('hidden');
+      recognition.start();
+    });
+
+    document.getElementById('voiceCloseBtn').addEventListener('click', closeVoiceSearch);
+
+    function closeVoiceSearch() {
+      voiceSearchModal.classList.add('hidden');
+      if (recognition) recognition.stop();
+    }
+
+    // Simulated skeleton loads during transitions
+    function simulateSkeletonLoad() {
+      const parent = document.getElementById('planetarySystem');
+      parent.innerHTML = `
+        <div class="col-span-full py-16 text-center space-y-4">
+          <i data-lucide="compass" class="w-16 h-16 text-neonBlue mx-auto animate-spin"></i>
+          <p class="text-xs font-mono text-neonBlue uppercase tracking-widest">Scanning sector anomalies...</p>
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    // Helper: Toast alerts
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = "flex items-center space-x-3 bg-spaceDark border border-neonBlue text-white text-xs font-mono px-4 py-3 rounded-xl shadow-[0_0_20px_rgba(0,243,255,0.45)] pointer-events-auto";
+      toast.innerHTML = `
+        <i data-lucide="terminal" class="w-4 h-4 text-neonBlue"></i>
+        <span>> ${message}</span>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      gsap.from(toast, { y: 25, opacity: 0, duration: 0.3 });
+      setTimeout(() => {
+        gsap.to(toast, { opacity: 0, y: -20, duration: 0.3, onComplete: () => toast.remove() });
+      }, 3500);
+    }
+
+    // Keyboard Hotkey listener overrides
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      const key = e.key.toLowerCase();
+      if (key === ' ') {
+        e.preventDefault();
+        showToast("Solar stream toggled.");
+      } else if (key === 'm') {
+        showToast("Acoustic Null active.");
+      } else if (key === 'f') {
+        const active = document.getElementById('activeIframe');
+        if (active) {
+          if (!document.fullscreenElement) active.requestFullscreen().catch(() => showToast("Expansion failed."));
+          else document.exitFullscreen();
+        }
+      } else if (key === 'h') {
+        navigateTo('home');
+      } else if (key === '?') {
+        toggleShortcutsModal();
+      }
+    });
+
+    function toggleShortcutsModal() {
+      const modal = document.getElementById('shortcutsModal');
+      modal.classList.toggle('hidden');
+    }
+
+    document.getElementById('shortcutsBtn').addEventListener('click', toggleShortcutsModal);
+
+    function setupEventHandlers() {
+      document.getElementById('sidebarToggle').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.toggle('-translate-x-full');
+      });
+
+      const profileBtn = document.getElementById('profileBtn');
+      const dropdown = document.getElementById('profileDropdown');
+      profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('hidden');
+      });
+
+      // Update color picker HEX visual indicators on input change
+      document.getElementById('planetColor').addEventListener('input', (e) => {
+        document.getElementById('planetColorHex').innerText = e.target.value.toUpperCase();
+      });
+    }
+
+    function handleExternalClicks(e) {
+      const suggestions = document.getElementById('searchSuggestions');
+      if (!e.target.closest('#searchForm')) suggestions.classList.add('hidden');
+
+      const dropdown = document.getElementById('profileDropdown');
+      if (!e.target.closest('#profileBtn') && !dropdown.classList.contains('hidden')) {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function debounce(func, timeout = 300){
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+      };
+    }
+  </script>
+</body>
+</html>
